@@ -1,0 +1,558 @@
+#!/usr/bin/python3
+
+
+
+
+#### Imports
+import sys
+import random
+import os
+import time
+#### Import Custom Modules
+import messcolor
+
+user=os.getlogin()
+
+
+
+
+
+
+
+############################### PARSE INPUT ARGS ############################
+#############################################################################
+if __name__ == "__main__":
+	import argparse
+	parser = argparse.ArgumentParser()
+	parser.add_argument('--target', '-t', help="Target IP destination identity")
+	parser.add_argument('--mode', '-m', help="SRT mode (client/server/rvue)")
+	parser.add_argument('--profile', '-p', help="Encoding profile preset")
+	parser.add_argument('--direction', '-d', help="Direction of stream (tx/rx)")
+	parser.add_argument('--kill', '-k', help="set to \'1\' to kill both containers")
+	args = parser.parse_args()
+	profile = args.profile
+########################### END PARSE INPUT ARGS ############################
+#############################################################################
+
+############################ DEF KILL FUNCTION ##############################
+#############################################################################
+def kill():
+	killvlc=os.system('sudo docker rm -f vlc-rx')
+	killsrt=os.system('sudo docker rm -f obe')
+	killsrt=os.system('sudo docker rm -f srt-tx')
+	killsrt=os.system('sudo docker rm -f srt-rx')
+	messcolor.printc('inversered', '********************    ALL CONTAINTERS KILLED !!   *******************')
+	quit()
+
+
+
+######################## DEF VALIDATE INPUT ARGS ############################
+#############################################################################
+def validateArgs():
+	killrun=False
+	print('\n')
+	messcolor.printc('inverseblue', "----------- VALIDATING LAUNCHER SETTINGS ------------")
+	##verify all input args are defined
+	
+	if (args.target is None and args.direction is 'tx'):
+		messcolor.printc('red','You must include Target IP (-t xxx.xxx.xxx.xxx)')
+		killrun = True
+
+
+	if (args.mode is None):
+		messcolor.printc('red', 'You must include a mode. (-m server) or (-m client)')
+		killrun = True
+
+
+	if (args.profile is None and args.direction is 'tx'):
+		messcolor.printc('red', 'You must include a profile. (-p 1080i_8mbps)')
+		killrun = True
+	
+
+	if (args.direction is None):
+		messcolor.printc('red', 'You must include a direction. (-d tx) or (-d rx)')
+		killrun = True	
+
+	##validate profile file exists
+	if (args.profile is not None):
+		profile_filepath=('profiles/' + args.profile)
+		if(os.path.isfile(profile_filepath)):
+			messcolor.printc('blue', args.profile + ' profile found')
+		else:
+			from os import listdir
+			messcolor.printc('red','\nProfile definition not found for ' + args.profile)
+			messcolor.printc('inversegreen','\nCurrently Availible Profiles\n----------------------------')
+			for profile in os.listdir('./profiles'):
+				messcolor.printc('green', profile)
+			print('\n')
+			killrun=True
+
+	##validate mode
+	if(args.mode is not None):
+		rules=[args.mode=='client', args.mode=='server', args.mode=='rvue']
+		if any(rules):
+			messcolor.printc('blue', 'launching in mode: ' + args.mode)	
+		else:
+			messcolor.printc('red', '\"' + args.mode + '\" is not a valid mode!!')
+			killrun=True
+
+	##validate direction
+	if(args.direction is not None):
+		rules=[args.direction=='tx', args.direction=='rx']
+		if any(rules):
+			messcolor.printc('blue', 'direction set to: ' + args.direction)
+		else:
+			messcolor.printc('red', '\"' + args.direction + '\" is not a valid direction!  --  (only tx and rx are allowed)')
+			killrun=True
+
+	## termination if validation fails
+	if(killrun==True):
+		messcolor.printc('inversered', "\n**********  TERMINATED! **********")
+		print('\n')
+		quit()
+	else:
+		return(True)
+########################## END VALIDATE INPUT ARGS ##########################
+#############################################################################
+
+
+
+################################ BuildTX ####################################
+#############################################################################
+def tx():
+	messcolor.printc('inverseblue', '-------------- BUILDING TX ENVIRONMENT --------------')
+	messcolor.printc('blue', "STARTING: Build OBE Entrypoint Script")
+	######### Begin building entrypoint
+	
+	#### Parse data from selected config file 
+	profile_filepath=('profiles/' + args.profile)
+	from configparser import ConfigParser
+	parser = ConfigParser()
+	parser.read(profile_filepath)
+	settings=dict(parser.items('txsettings'))
+	setting={}
+	setting['name']=(settings.get('name'))
+	setting['description']=(settings.get('description'))
+	setting['vidconnection']=(settings.get('vidconnection'))
+	setting['systype']=(settings.get('systype'))
+	setting['vvideoformat']=(settings.get('vvideoformat'))
+	setting['vpid']=(settings.get('vpid'))
+	setting['vvbv-maxrate']=(settings.get('vvbv-maxrate'))
+	setting['vbitrate']=(settings.get('vbitrate'))
+	setting['vkeyint']=(settings.get('vkeyint'))
+	setting['vbframes']=(settings.get('vbframes'))
+	setting['vthreads']=(settings.get('vthreads'))
+	setting['vformat']=(settings.get('vformat'))
+	setting['vprofile']=(settings.get('vprofile'))
+	setting['vlevel']=(settings.get('vlevel'))
+	setting['vaspect-ratio']=(settings.get('vaspect-ratio'))
+	setting['vintra-refresh']=(settings.get('vintra-refresh'))
+	setting['apid']=(settings.get('apid'))
+	setting['abitrate']=(settings.get('abitrate'))
+	setting['aformat']=(settings.get('aformat'))
+	setting['aaac-profile']=(settings.get('aaac-profile'))
+	setting['aaac-encap']=(settings.get('aaac-encap'))
+	setting['pmt-pid']=(settings.get('pmt-pid'))
+	setting['program-num']=(settings.get('program-num'))
+	setting['pcr-pid']=(settings.get('pcr-pid'))
+	setting['ts-id']=(settings.get('ts-id'))
+	setting['ts-type']=(settings.get('ts-type'))
+	setting['cbr']=(settings.get('cbr'))
+	setting['lookahead']=(settings.get('lookahead'))
+	setting['ts-muxrate']=(settings.get('ts-muxrate'))
+	setting['outputmode']=(settings.get('outputmode'))
+	setting['numoutputs']=(settings.get('numoutputs'))
+	messcolor.labelc('greenyellow','PROFILE NAME',setting['name'])
+	messcolor.labelc('greenyellow','DESCRIPTION',setting['description'])
+	messcolor.labelc('greenyellow','VID INPUT',setting['vidconnection'])
+	messcolor.labelc('greenyellow','SYSTEM TYPE',setting['systype'])
+	messcolor.labelc('greenyellow','VID FORMAT',setting['vvideoformat'])
+	messcolor.labelc('greenyellow','VID PID',setting['vpid'])
+	messcolor.labelc('greenyellow','VID MAX BIT',setting['vvbv-maxrate'])
+	messcolor.labelc('greenyellow','VID BITRATE',setting['vbitrate'])
+	messcolor.labelc('greenyellow','VID KEYINT',setting['vkeyint'])
+	messcolor.labelc('greenyellow','VID B-FRAMES',setting['vbframes'])
+	messcolor.labelc('greenyellow','VID THREADS',setting['vthreads'])
+	messcolor.labelc('greenyellow','VID FORMAT',setting['vformat'])
+	messcolor.labelc('greenyellow','VID PROFILE',setting['vprofile'])
+	messcolor.labelc('greenyellow','VID LEVEL',setting['vlevel'])
+	messcolor.labelc('greenyellow','VID ASPECT',setting['vaspect-ratio'])
+	messcolor.labelc('greenyellow','VID INTRA',setting['vintra-refresh'])
+	messcolor.labelc('greenyellow','AUD PID',setting['apid'])
+	messcolor.labelc('greenyellow','AUD BITRATE',setting['abitrate'])
+	messcolor.labelc('greenyellow','AUD FORMAT',setting['aformat'])
+	messcolor.labelc('greenyellow','AAC PROFILE',setting['aaac-profile'])
+	messcolor.labelc('greenyellow','AAC ENCAP',setting['aaac-encap'])
+	messcolor.labelc('greenyellow','PMT PID',setting['pmt-pid'])
+	messcolor.labelc('greenyellow','PGM NUM',setting['program-num'])
+	messcolor.labelc('greenyellow','PCR PID',setting['pcr-pid'])
+	messcolor.labelc('greenyellow','TS TYPE',setting['ts-type'])
+	messcolor.labelc('greenyellow','CONSTANT BR',setting['cbr'])
+	messcolor.labelc('greenyellow','LOOKAHEAD',setting['lookahead'])
+	messcolor.labelc('greenyellow','TS ID',setting['ts-id'])
+	messcolor.labelc('greenyellow','TS MUXRATE',setting['ts-muxrate'])
+	messcolor.labelc('greenyellow','OUTPUT MODE',setting['outputmode'])
+	messcolor.labelc('greenyellow','NUM OUTPUTS',setting['numoutputs'])
+	print('\n')
+
+	## STILL NEED TO VALIDATE PROFILE INTEGRITY (is all the info there?)
+
+
+	## Build Entrypoint
+	import stat
+	obe_send_file = open("hostfiles/obe-entrypoint.sh", "wb")
+	obe_send_file.write(bytes("#!/bin/bash\n", 'UTF-8'))
+	obe_send_file.write(bytes("NAME=obe\n", 'UTF-8'))
+	obe_send_file.write(bytes("screen  -d -m -S $NAME obecli\n", 'UTF-8'))
+	obe_send_file.write(bytes("sleep 2\n", 'UTF-8'))
+	obe_send_file.write(bytes("screen -p 0 -S $NAME -X stuff $\"set input decklink" + r"\012" + "\"\n", 'UTF-8'))
+	obe_send_file.write(bytes("screen -p 0 -S $NAME -X stuff $\"set input opts card-idx=0" + r"\012" +"\"\n", 'UTF-8'))
+	obe_send_file.write(bytes("screen -p 0 -S $NAME -X stuff $\"set input opts video-format=%s" % setting['vvideoformat'] + r'\012' +'\"\n' , 'UTF-8'))
+	obe_send_file.write(bytes("screen -p 0 -S $NAME -X stuff $\"set input opts video-connection=%s" % setting['vidconnection'] + r"\012" +"\"\n", 'UTF-8'))
+	obe_send_file.write(bytes("screen -p 0 -S $NAME -X stuff $\"set input opts audio-connection=embedded" + r"\012" +"\"\n" ,'UTF-8'))
+	obe_send_file.write(bytes("screen -p 0 -S $NAME -X stuff $\"set obe opts system-type=%s" % setting['systype'] + r"\012" +"\"\n", 'UTF-8'))
+	obe_send_file.write(bytes("screen -p 0 -S $NAME -X stuff $\"probe input" + r"\012" +"\"\n", 'UTF-8'))
+	obe_send_file.write(bytes("sleep 2\n", 'UTF-8'))
+
+	obe_send_file.write(bytes('screen -p 0 -S $NAME -X stuff ', 'UTF-8'))
+	obe_send_file.write(bytes('$\"set stream opts 0:pid=%s' % setting['vpid'] + ',' ,'UTF-8'))
+
+	if(setting['systype'] == 'lowestlatency'):
+		messcolor.printc('yellow','ALERT: video max biterate not set in lowlatency mode')
+	else:
+		obe_send_file.write(bytes('vbv-maxrate=%s' % setting['vvbv-maxrate'] + ',' ,'UTF-8'))
+	
+	if(setting['vthreads'] is not ''):
+		obe_send_file.write(bytes('threads=%s' % setting['vthreads'] + ',' ,'UTF-8'))
+
+	if(setting['vformat'] is not ''):
+		obe_send_file.write(bytes('format=%s' % setting['vformat'] + ',' , 'UTF-8'))
+	
+	if(setting['vprofile'] is not ''):
+		obe_send_file.write(bytes('profile=%s' % setting['vprofile'] + ',' , 'UTF-8'))
+	
+	if(setting['vlevel'] is not ''):
+		obe_send_file.write(bytes('level=%s' % setting['vlevel'] + ',' , 'UTF-8'))
+	
+	if(setting['vaspect-ratio'] is not ''):
+		obe_send_file.write(bytes('aspect-ratio=%s' % setting['vaspect-ratio'] + ',' , 'UTF-8'))
+	
+	if(setting['vintra-refresh'] is not ''):
+		obe_send_file.write(bytes('intra-refresh=%s' % setting['vintra-refresh'] + ',' , 'UTF-8'))
+
+	if(setting['vbitrate'] is not ''):
+		obe_send_file.write(bytes('bitrate=%s' % setting['vbitrate'] ,'UTF-8'))
+
+	obe_send_file.write(bytes( r'\012' + '\"\n' , 'UTF-8'))
+
+	### Audio Settings
+	obe_send_file.write(bytes('screen -p 0 -S $NAME -X stuff ', 'UTF-8'))
+	obe_send_file.write(bytes('$\"set stream opts 1:pid=%s' % setting['apid'] + ',' ,'UTF-8'))
+
+	if(setting['abitrate'] is not ''):
+		obe_send_file.write(bytes('bitrate=%s' % setting['abitrate'],'UTF-8'))
+		if(setting['aformat'] is not ''):
+			obe_send_file.write(bytes(',','UTF-8'))
+		else:
+			obe_send_file.write(bytes( r'\012' +'\"\n' ,'UTF-8'))
+
+	if(setting['aformat'] is not ''):
+		obe_send_file.write(bytes('format=%s' % setting['aformat'],'UTF-8'))
+		if(setting['aaac-profile'] is not ''):
+			obe_send_file.write(bytes(',','UTF-8'))
+		else:
+			obe_send_file.write(bytes( r'\012' + '\"\n' ,'UTF-8'))
+
+	if(setting['aaac-profile'] is not ''):
+		obe_send_file.write(bytes('aac-profile=%s' % setting['aaac-profile'],'UTF-8'))
+		if(setting['aaac-encap'] is not ''):
+			obe_send_file.write(bytes(',','UTF-8'))
+		else:
+			obe_send_file.write(bytes( r'\012' + '\"\n' ,'UTF-8'))
+
+	if(setting['aaac-encap'] is not ''):
+		obe_send_file.write(bytes('aac-encap=%s' % setting['aaac-encap'] + r'\012' +'\"\n','UTF-8'))
+
+	## Muxer settings
+	obe_send_file.write(bytes('screen -p 0 -S $NAME -X stuff ', 'UTF-8'))
+	obe_send_file.write(bytes('$\"set muxer opts ts-id=%s' % setting['ts-id'] + ',' ,'UTF-8'))
+	obe_send_file.write(bytes('program-num=%s' % setting['program-num'] + ',' ,'UTF-8'))
+	obe_send_file.write(bytes('pmt-pid=%s' % setting['pmt-pid'] + ',' ,'UTF-8'))
+	obe_send_file.write(bytes('ts-type=%s' % setting['ts-type'] + ',' ,'UTF-8'))
+	obe_send_file.write(bytes('cbr=%s' % setting['cbr'] + ',' ,'UTF-8'))
+	obe_send_file.write(bytes('ts-muxrate=%s' % setting['ts-muxrate'] + ',' ,'UTF-8'))
+	obe_send_file.write(bytes('pcr-pid=%s' % setting['pcr-pid'],'UTF-8'))
+	obe_send_file.write(bytes( r'\012' + '\"\n' ,'UTF-8'))
+
+	##latency settings
+	obe_send_file.write(bytes('screen -p 0 -S $NAME -X stuff ', 'UTF-8'))
+	obe_send_file.write(bytes('$\"set stream opts 0:lookahead=' + setting['lookahead'] + ',','UTF-8'))
+	obe_send_file.write(bytes('keyint=' + setting['vkeyint'] + ',','UTF-8'))
+	obe_send_file.write(bytes('bframes=' + setting['vbframes'],'UTF-8'))
+	obe_send_file.write(bytes( r'\012' + '\"\n' ,'UTF-8'))
+
+	##bitrate
+	obe_send_file.write(bytes('screen -p 0 -S $NAME -X stuff ', 'UTF-8'))
+	obe_send_file.write(bytes('$\"set stream opts 0:bitrate=%s' % setting['vbitrate'] ,'UTF-8'))
+	obe_send_file.write(bytes( r'\012' + '\"\n' , 'UTF-8'))
+
+	##unicast output
+	obe_send_file.write(bytes('screen -p 0 -S $NAME -X stuff ', 'UTF-8'))
+	obe_send_file.write(bytes('$\"set outputs ' + setting['numoutputs'],'UTF-8'))
+	obe_send_file.write(bytes( r'\012' + '\"\n' ,'UTF-8'))
+	obe_send_file.write(bytes('screen -p 0 -S $NAME -X stuff ', 'UTF-8'))
+	obe_send_file.write(bytes('$\"set output opts 0:','UTF-8'))
+	obe_send_file.write(bytes('target=udp://10.0.10.3:4443,' ,'UTF-8'))
+	obe_send_file.write(bytes('type=udp' ,'UTF-8'))
+	obe_send_file.write(bytes( r'\012' + '\"\n' ,'UTF-8'))
+
+	##start
+	obe_send_file.write(bytes("screen -p 0 -S $NAME -X stuff $\"start" + r'\012' + "\"\n", 'UTF-8'))
+	obe_send_file.write(bytes("screen -r\n", 'UTF-8'))
+	obe_send_file.close()
+	messcolor.printc('blue', "SUCCESS: Docker Entrypoint file created (hostfiles/obe-entrypoint.sh)")
+	print('\n')
+############################### END BuildTX #################################
+#############################################################################
+
+#############################################################################
+#############################################################################
+#############################################################################
+#############################################################################
+
+########################### BUILD OBE DOCKER LAUNCHER #######################
+#############################################################################
+	messcolor.printc('blue', "STARTING: Build OBE Docker Launcher")
+	from subprocess import call
+	import stat
+	obe_start_docker = open("hostfiles/start-obe-docker.sh", "wb")
+	obe_start_docker.write(bytes("#!/bin/bash\n", 'UTF-8'))
+	obe_start_docker.write(bytes("docker rm -f obe-rt\n", 'UTF-8'))
+	obe_start_docker.write(bytes("docker run ", 'UTF-8'))
+	obe_start_docker.write(bytes("--name=\"obe-rt\" ", 'UTF-8'))
+	obe_start_docker.write(bytes("--network=\"split\" ", 'UTF-8'))
+	obe_start_docker.write(bytes("--ip=\"10.0.10.2\" ", 'UTF-8'))
+	obe_start_docker.write(bytes("-v /home/" + user + "/apps/srt-connect-2/hostfiles:/home/hostfiles ", 'UTF-8'))
+	obe_start_docker.write(bytes("--privileged -i -t -d ", 'UTF-8'))
+	#obe_start_docker.write(bytes("--entrypoint=\"/bin/bash\" ", 'UTF-8'))
+	obe_start_docker.write(bytes("--device /dev/blackmagic/io0 ", 'UTF-8'))
+	obe_start_docker.write(bytes("pmw1/obe-rt \n", 'UTF-8'))
+	obe_start_docker.close()
+	os.chmod('hostfiles/start-obe-docker.sh', stat.S_IXOTH)
+	messcolor.printc('blue', "SUCCESS: Docker launcher file created (hostfiles/start-obe-docker.sh)")
+	print('\n')
+######################### END BUILD OBE DOCKER LAUNCHER #####################
+#############################################################################
+
+#############################################################################
+#############################################################################
+#############################################################################
+#############################################################################
+
+############################# BUILD SRT ENTRYPOINT (TX) ##########################
+#############################################################################
+	messcolor.printc('blue', "STARTING: Build SRT Entrypoint")
+	srt_entrypoint = open("hostfiles/srt-entrypoint.sh", "wb")
+	srt_entrypoint.write(bytes("#!/bin/bash\n", 'UTF-8'))
+	if(args.mode=="client"):
+		messcolor.printc('blue', "SETTING: SRT to client/caller mode")
+		srt_entrypoint.write(bytes("/home/srt/srt-live-transmit -v udp://0.0.0.0:4443/?mode=client srt://" + args.target + ":3000",'UTF-8'))
+	if(args.mode=="server"):
+		messcolor.printc('blue', "SETTING: SRT to server/listener mode")
+		srt_entrypoint.write(bytes("/home/srt/srt-live-transmit -v udp://0.0.0.0:4443 srt://0.0.0.0:3000/?mode=server",'UTF-8'))
+	srt_entrypoint.close()
+	os.chmod('hostfiles/srt-entrypoint.sh', stat.S_IXOTH)
+	messcolor.printc('blue', "SUCCESS: SRT Entrypoint file created (hostfiles/srt-entrypoint.sh)")
+	print('\n')
+######################### END BUILD SRT ENTRYPOINT ##########################
+#############################################################################
+
+#############################################################################
+#############################################################################
+#############################################################################
+#############################################################################
+
+######################### BUILD SRT DOCKER LAUNCHER #########################
+#############################################################################
+	messcolor.printc('blue', "STARTING: Build SRT Docker Launcher")
+	srt_start_docker = open("./hostfiles/start-srt-docker.sh", "wb")
+	srt_start_docker.write(bytes("#!/bin/bash\n", 'UTF-8'))
+	srt_start_docker.write(bytes("echo\n", 'UTF-8'))
+	srt_start_docker.write(bytes("docker rm -f srt-tx\n", 'UTF-8'))
+	srt_start_docker.write(bytes("docker run ", 'UTF-8'))
+	srt_start_docker.write(bytes("--name=\"srt-tx\" ", 'UTF-8'))
+	srt_start_docker.write(bytes("--network=\"split\" ", 'UTF-8'))
+	srt_start_docker.write(bytes("--ip=\"10.0.10.3\" ", 'UTF-8'))
+	srt_start_docker.write(bytes("-p 4443:4443/udp ", 'UTF-8'))
+	srt_start_docker.write(bytes("-p 3000:3000/udp ", 'UTF-8'))
+	srt_start_docker.write(bytes("-v /home/" + user + "/apps/srt-connect-2/hostfiles:/home/hostfiles ", 'UTF-8'))
+	srt_start_docker.write(bytes("--privileged -i -t -d ", 'UTF-8'))
+	##srt_start_docker.write(bytes("--entrypoint=\"/bin/bash\" ", 'UTF-8'))
+	srt_start_docker.write(bytes("pmw1/srt \n", 'UTF-8'))
+	srt_start_docker.close()
+	os.chmod('hostfiles/start-srt-docker.sh', stat.S_IXOTH)
+	messcolor.printc('blue', "SUCCESS: SRT Docker Launcher file created (hostfiles/start-srt-docker.sh)")
+	##print('\n')
+	messcolor.printc('inverseblue', '---------------- CREATED TX ENVIRONMENT --------------')
+	print('\n')
+####################### END BUILD SRT DOCKER LAUNCHER #######################
+#############################################################################
+
+#############################################################################
+#############################################################################
+#############################################################################
+#############################################################################
+
+#############################  START TRANSMISSION  ##########################
+#############################################################################
+	messcolor.printc('inverseblue', '---------------- STARTING TRANSMISSION --------------')
+	import subprocess
+	os.chmod('hostfiles/obe-entrypoint.sh', stat.S_IXOTH)
+	os.chmod('hostfiles/srt-entrypoint.sh', stat.S_IXOTH)
+	srt=subprocess.Popen('sudo hostfiles/start-srt-docker.sh', shell=True)
+	obe=subprocess.Popen('sudo hostfiles/start-obe-docker.sh', shell=True)
+	obe=subprocess.Popen('sudo echo && echo && echo && echo && echo ', shell=True)
+########################### END START TRANSMISSION ##########################
+#############################################################################
+
+#############################################################################
+#############################################################################
+#############################################################################
+#############################################################################
+
+
+
+
+
+################################# BUILD RX ##################################
+#############################################################################
+def rx():
+
+
+	######### Begin building VLC entrypoint
+	messcolor.printc('inverseblue', '-------------- BUILDING RX ENVIRONMENT --------------')
+	messcolor.printc('blue', "STARTING: Build VLC Entrypoint Script")
+	from subprocess import call
+	import stat
+	vlc_entrypoint = open("hostfiles/vlc-entrypoint.sh", "wb")
+	vlc_entrypoint.write(bytes("#!/bin/bash\n", 'UTF-8'))
+	vlc_entrypoint.write(bytes("cvlc udp://@:4444 ", 'UTF-8'))
+	vlc_entrypoint.write(bytes("-I dummy ", 'UTF-8'))
+	vlc_entrypoint.write(bytes("--ignore-config ", 'UTF-8'))
+	vlc_entrypoint.write(bytes("--network-caching=\"500\" ", 'UTF-8'))
+	vlc_entrypoint.write(bytes("--decklink-vout-video-connection sdi ", 'UTF-8'))
+	vlc_entrypoint.write(bytes("--decklink-mode Hi59 ", 'UTF-8'))
+	vlc_entrypoint.write(bytes("--decklink-aspect-ratio=16:9 ", 'UTF-8'))
+	vlc_entrypoint.write(bytes("-V decklinkoutput ", 'UTF-8'))
+	vlc_entrypoint.write(bytes("-A decklinkoutput ", 'UTF-8'))
+	vlc_entrypoint.write(bytes("--decklink-vout-mode Hi59 ", 'UTF-8'))
+	vlc_entrypoint.close()
+	messcolor.printc('blue', "SUCCESS: Built VLC Entrypoint Script (hostfiles/vlc-entrypoint.sh)")
+	print('\n')
+
+	######### Begin building SRT entrypoint
+	messcolor.printc('blue', "STARTING: Build SRT Entrypoint Script")
+	srt_entrypoint = open("hostfiles/srt-entrypoint.sh", "wb")
+	srt_entrypoint.write(bytes("#!/bin/bash\n", 'UTF-8'))
+
+	if(args.mode=="client"):
+		messcolor.printc('blue', "SETTING: SRT to client/caller mode")
+		srt_entrypoint.write(bytes("/home/srt/srt-live-transmit -s:2000 -r:2000 -v srt://0.0.0.0:3000/?mode=client udp://10.0.10.5:4444",'UTF-8'))
+	if(args.mode=="server"):
+		messcolor.printc('blue', "SETTING: SRT to server/listener mode")
+		srt_entrypoint.write(bytes("/home/srt/srt-live-transmit -s:2000 -r:2000 -v srt://0.0.0.0:3000/?mode=server udp://10.0.10.5:4444",'UTF-8'))
+	srt_entrypoint.close()
+	os.chmod('hostfiles/srt-entrypoint.sh', stat.S_IXOTH)
+	messcolor.printc('blue', "SUCCESS: SRT Entrypoint file created (hostfiles/srt-entrypoint.sh)")
+	print('\n')
+
+
+	######### Begin building VLC docker launcher
+	messcolor.printc('blue', "STARTING: Build VLC Docker Launcher Script")
+	vlc_start_docker = open("hostfiles/start-vlc-docker.sh", "wb")
+	vlc_start_docker.write(bytes("#!/bin/bash\n", 'UTF-8'))
+	vlc_start_docker.write(bytes("docker rm -f vlc-rx\n", 'UTF-8'))
+	vlc_start_docker.write(bytes("docker run ", 'UTF-8'))
+	vlc_start_docker.write(bytes("--name=\"vlc-rx\" ", 'UTF-8'))
+	vlc_start_docker.write(bytes("--network=\"split\" ", 'UTF-8'))
+	vlc_start_docker.write(bytes("--ip=\"10.0.10.5\" ", 'UTF-8'))
+	vlc_start_docker.write(bytes("-p 4444:4444/udp ", 'UTF-8'))
+	vlc_start_docker.write(bytes("-v /home/" + user + "/apps/srt-connect-2/hostfiles:/home/hostfiles ", 'UTF-8'))
+	vlc_start_docker.write(bytes("--privileged -i -t -d ", 'UTF-8'))
+	vlc_start_docker.write(bytes("--entrypoint=\"/home/hostfiles/vlc-entrypoint.sh\" ", 'UTF-8'))
+	##vlc_start_docker.write(bytes("--entrypoint=\"/bin/bash\" ", 'UTF-8'))
+	vlc_start_docker.write(bytes("pmw1/vlc \n", 'UTF-8'))
+	##vlc_start_docker.write(bytes("sudo docker attach vlc-rx\n", 'UTF-8'))
+	vlc_start_docker.close()
+	os.chmod('hostfiles/start-vlc-docker.sh', stat.S_IXOTH)
+	messcolor.printc('blue', "SUCCESS: VLC Docker Launcher file created (hostfiles/start-vlc-docker.sh)")
+	##print('\n')
+
+	######### Begin srt building docker launcher
+	messcolor.printc('blue', "STARTING: Build SRT Docker Launcher Script")
+	srt_start_docker = open("hostfiles/start-srt-docker.sh", "wb")
+	srt_start_docker.write(bytes("#!/bin/bash\n", 'UTF-8'))
+	srt_start_docker.write(bytes("docker rm -f srt-rx\n", 'UTF-8'))
+	srt_start_docker.write(bytes("docker run ", 'UTF-8'))
+	srt_start_docker.write(bytes("--name=\"srt-rx\" ", 'UTF-8'))
+	srt_start_docker.write(bytes("--network=\"split\" ", 'UTF-8'))
+	srt_start_docker.write(bytes("--ip=\"10.0.10.4\" ", 'UTF-8'))
+	srt_start_docker.write(bytes("-p 3000:3000/udp ", 'UTF-8'))
+	srt_start_docker.write(bytes("-v /home/" + user + "/apps/srt-connect-2/hostfiles:/home/hostfiles ", 'UTF-8'))
+	srt_start_docker.write(bytes("--privileged -i -t -d ", 'UTF-8'))
+	srt_start_docker.write(bytes("--entrypoint=\"/home/hostfiles/srt-entrypoint.sh\" ", 'UTF-8'))
+	##srt_start_docker.write(bytes("--entrypoint=\"/bin/bash\" ", 'UTF-8'))
+	srt_start_docker.write(bytes("pmw1/srt \n", 'UTF-8'))
+	##srt_start_docker.write(bytes("sudo docker attach srt \n", 'UTF-8'))
+	srt_start_docker.close()
+	os.chmod('hostfiles/start-srt-docker.sh', stat.S_IXOTH)
+	messcolor.printc('blue', "SUCCESS: Completed Building SRT Docker Launcher Script")
+#############################  START RECEIVING  #############################
+#############################################################################
+	messcolor.printc('inverseblue', '---------------- STARTING RECEIVING --------------')
+	import subprocess
+	os.chmod('hostfiles/vlc-entrypoint.sh', stat.S_IXOTH)
+	os.chmod('hostfiles/srt-entrypoint.sh', stat.S_IXOTH)
+	srt=subprocess.Popen('sudo hostfiles/start-srt-docker.sh', shell=True)
+	obe=subprocess.Popen('sudo hostfiles/start-vlc-docker.sh', shell=True)
+	obe=subprocess.Popen('sudo echo && echo && echo && echo && echo ', shell=True)
+########################### END START RECEIVING #############################
+#############################################################################
+
+############################### END BUILD RX ################################
+#############################################################################
+
+#############################################################################
+#############################################################################
+#############################################################################
+#############################################################################
+
+
+
+
+
+if (args.kill == '1'):
+	kill()
+
+######## Validate command launch arguments
+if(validateArgs()):
+	messcolor.printc('inverseblue','VALIDATED!')
+	print('\n')
+
+######## Build TX
+if(args.direction=='tx'):
+	tx()
+######## Build RX	
+if(args.direction=='rx'):
+	rx()
+
+
+
+
+
+
+
+
+
+
+

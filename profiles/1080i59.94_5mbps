@@ -1,0 +1,34 @@
+[txsettings]
+name:			1080i59.94_5mbps
+description: 	1080i / 59.94 / 5mbps
+vidconnection: 	sdi
+systype: 		lowestlatency
+vvideoformat: 	1080i59.94
+vpid:			1000
+vvbv-maxrate:	4500
+vbitrate:		4000
+vbufsize:		100000
+vkeyint:		30
+vbframes:		1
+vthreads:		6
+vformat:		avc
+vprofile:		high
+vlevel:			5.1
+vaspect-ratio:	16:9
+vintra-refresh:	1
+apid:			1001
+abitrate:		256
+aformat:		aac
+aaac-profile:	aac-lc
+aaac-encap:		latm
+pmt-pid:		256
+program-num:	1
+pcr-pid:		512
+pcr-period:		30
+ts-id:			1
+ts-type:		dvb
+cbr:			1
+lookahead:		5
+ts-muxrate:		5000000
+outputmode:		udp
+numoutputs:		1

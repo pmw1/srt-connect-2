@@ -1,0 +1,5 @@
+hostfiles/obe-entrypoint.sh
+hostfiles/srt-entrypoint.sh
+hostfiles/start-srt-docker.sh
+hostfiles/start-vlc-docker.sh
+hostfiles/vlc-entrypoint.sh

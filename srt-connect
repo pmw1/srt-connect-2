@@ -439,7 +439,7 @@ def rx():
 	vlc_entrypoint.write(bytes("cvlc udp://@:4444 ", 'UTF-8'))
 	vlc_entrypoint.write(bytes("-I dummy ", 'UTF-8'))
 	vlc_entrypoint.write(bytes("--ignore-config ", 'UTF-8'))
-	vlc_entrypoint.write(bytes("--network-caching=\"250\" ", 'UTF-8'))
+	vlc_entrypoint.write(bytes("--network-caching=\"350\" ", 'UTF-8'))
 	vlc_entrypoint.write(bytes("--decklink-vout-video-connection sdi ", 'UTF-8'))
 	vlc_entrypoint.write(bytes("--decklink-mode Hi59 ", 'UTF-8'))
 	vlc_entrypoint.write(bytes("--decklink-aspect-ratio=16:9 ", 'UTF-8'))

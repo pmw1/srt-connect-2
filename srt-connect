@@ -12,9 +12,7 @@ import time
 import messcolor
 
 user=os.getlogin()
-
-
-
+srtConnectPath=('/home/'+user+'/apps/srt-connect-2')
 
 
 
@@ -38,7 +36,7 @@ if __name__ == "__main__":
 #############################################################################
 def kill():
 	killvlc=os.system('sudo docker rm -f vlc-rx')
-	killsrt=os.system('sudo docker rm -f obe')
+	killsrt=os.system('sudo docker rm -f obe-rt')
 	killsrt=os.system('sudo docker rm -f srt-tx')
 	killsrt=os.system('sudo docker rm -f srt-rx')
 	messcolor.printc('inversered', '********************    ALL CONTAINTERS KILLED !!   *******************')
@@ -75,14 +73,14 @@ def validateArgs():
 
 	##validate profile file exists
 	if (args.profile is not None):
-		profile_filepath=('profiles/' + args.profile)
+		profile_filepath=('/home/'+user+'/apps/srt-connect-2/profiles/' + args.profile)
 		if(os.path.isfile(profile_filepath)):
 			messcolor.printc('blue', args.profile + ' profile found')
 		else:
 			from os import listdir
 			messcolor.printc('red','\nProfile definition not found for ' + args.profile)
 			messcolor.printc('inversegreen','\nCurrently Availible Profiles\n----------------------------')
-			for profile in os.listdir('./profiles'):
+			for profile in os.listdir(srtConnectPath+'/profiles'):
 				messcolor.printc('green', profile)
 			print('\n')
 			killrun=True
@@ -125,7 +123,7 @@ def tx():
 	######### Begin building entrypoint
 	
 	#### Parse data from selected config file 
-	profile_filepath=('profiles/' + args.profile)
+	profile_filepath=(srtConnectPath + '/profiles/' + args.profile)
 	from configparser import ConfigParser
 	parser = ConfigParser()
 	parser.read(profile_filepath)
@@ -200,7 +198,7 @@ def tx():
 
 	## Build Entrypoint
 	import stat
-	obe_send_file = open("hostfiles/obe-entrypoint.sh", "wb")
+	obe_send_file = open(srtConnectPath+"/hostfiles/obe-entrypoint.sh", "wb")
 	obe_send_file.write(bytes("#!/bin/bash\n", 'UTF-8'))
 	obe_send_file.write(bytes("NAME=obe\n", 'UTF-8'))
 	obe_send_file.write(bytes("screen  -d -m -S $NAME obecli\n", 'UTF-8'))
@@ -325,20 +323,20 @@ def tx():
 	messcolor.printc('blue', "STARTING: Build OBE Docker Launcher")
 	from subprocess import call
 	import stat
-	obe_start_docker = open("hostfiles/start-obe-docker.sh", "wb")
+	obe_start_docker = open(srtConnectPath+"/hostfiles/start-obe-docker.sh", "wb")
 	obe_start_docker.write(bytes("#!/bin/bash\n", 'UTF-8'))
 	obe_start_docker.write(bytes("docker rm -f obe-rt\n", 'UTF-8'))
 	obe_start_docker.write(bytes("docker run ", 'UTF-8'))
 	obe_start_docker.write(bytes("--name=\"obe-rt\" ", 'UTF-8'))
 	obe_start_docker.write(bytes("--network=\"split\" ", 'UTF-8'))
 	obe_start_docker.write(bytes("--ip=\"10.0.10.2\" ", 'UTF-8'))
-	obe_start_docker.write(bytes("-v /home/" + user + "/apps/srt-connect-2/hostfiles:/home/hostfiles ", 'UTF-8'))
+	obe_start_docker.write(bytes("-v "+srtConnectPath+"/hostfiles:/home/hostfiles ", 'UTF-8'))
 	obe_start_docker.write(bytes("--privileged -i -t -d ", 'UTF-8'))
 	#obe_start_docker.write(bytes("--entrypoint=\"/bin/bash\" ", 'UTF-8'))
 	obe_start_docker.write(bytes("--device /dev/blackmagic/io0 ", 'UTF-8'))
 	obe_start_docker.write(bytes("pmw1/obe-rt \n", 'UTF-8'))
 	obe_start_docker.close()
-	os.chmod('hostfiles/start-obe-docker.sh', stat.S_IXOTH)
+	os.chmod(srtConnectPath+'/hostfiles/start-obe-docker.sh', stat.S_IXOTH)
 	messcolor.printc('blue', "SUCCESS: Docker launcher file created (hostfiles/start-obe-docker.sh)")
 	print('\n')
 ######################### END BUILD OBE DOCKER LAUNCHER #####################
@@ -352,7 +350,7 @@ def tx():
 ############################# BUILD SRT ENTRYPOINT (TX) ##########################
 #############################################################################
 	messcolor.printc('blue', "STARTING: Build SRT Entrypoint")
-	srt_entrypoint = open("hostfiles/srt-entrypoint.sh", "wb")
+	srt_entrypoint = open(srtConnectPath+"/hostfiles/srt-entrypoint.sh", "wb")
 	srt_entrypoint.write(bytes("#!/bin/bash\n", 'UTF-8'))
 	if(args.mode=="client"):
 		messcolor.printc('blue', "SETTING: SRT to client/caller mode")
@@ -361,7 +359,7 @@ def tx():
 		messcolor.printc('blue', "SETTING: SRT to server/listener mode")
 		srt_entrypoint.write(bytes("/home/srt/srt-live-transmit -r:2000 -s:2000 -v udp://0.0.0.0:4443 srt://0.0.0.0:3000/?mode=server",'UTF-8'))
 	srt_entrypoint.close()
-	os.chmod('hostfiles/srt-entrypoint.sh', stat.S_IXOTH)
+	os.chmod(srtConnectPath+'/hostfiles/srt-entrypoint.sh', stat.S_IXOTH)
 	messcolor.printc('blue', "SUCCESS: SRT Entrypoint file created (hostfiles/srt-entrypoint.sh)")
 	print('\n')
 ######################### END BUILD SRT ENTRYPOINT ##########################
@@ -375,7 +373,7 @@ def tx():
 ######################### BUILD SRT DOCKER LAUNCHER #########################
 #############################################################################
 	messcolor.printc('blue', "STARTING: Build SRT Docker Launcher")
-	srt_start_docker = open("./hostfiles/start-srt-docker.sh", "wb")
+	srt_start_docker = open(srtConnectPath+"/hostfiles/start-srt-docker.sh", "wb")
 	srt_start_docker.write(bytes("#!/bin/bash\n", 'UTF-8'))
 	srt_start_docker.write(bytes("echo\n", 'UTF-8'))
 	srt_start_docker.write(bytes("docker rm -f srt-tx\n", 'UTF-8'))
@@ -385,12 +383,12 @@ def tx():
 	srt_start_docker.write(bytes("--ip=\"10.0.10.3\" ", 'UTF-8'))
 	srt_start_docker.write(bytes("-p 4443:4443/udp ", 'UTF-8'))
 	srt_start_docker.write(bytes("-p 3000:3000/udp ", 'UTF-8'))
-	srt_start_docker.write(bytes("-v /home/" + user + "/apps/srt-connect-2/hostfiles:/home/hostfiles ", 'UTF-8'))
+	srt_start_docker.write(bytes("-v "+srtConnectPath+"/hostfiles:/home/hostfiles ", 'UTF-8'))
 	srt_start_docker.write(bytes("--privileged -i -t -d ", 'UTF-8'))
 	##srt_start_docker.write(bytes("--entrypoint=\"/bin/bash\" ", 'UTF-8'))
 	srt_start_docker.write(bytes("pmw1/srt \n", 'UTF-8'))
 	srt_start_docker.close()
-	os.chmod('hostfiles/start-srt-docker.sh', stat.S_IXOTH)
+	os.chmod(srtConnectPath+'/hostfiles/start-srt-docker.sh', stat.S_IXOTH)
 	messcolor.printc('blue', "SUCCESS: SRT Docker Launcher file created (hostfiles/start-srt-docker.sh)")
 	##print('\n')
 	messcolor.printc('inverseblue', '---------------- CREATED TX ENVIRONMENT --------------')
@@ -407,13 +405,28 @@ def tx():
 #############################################################################
 	messcolor.printc('inverseblue', '---------------- STARTING TRANSMISSION --------------')
 	import subprocess
-	os.chmod('hostfiles/obe-entrypoint.sh', stat.S_IXOTH)
-	os.chmod('hostfiles/srt-entrypoint.sh', stat.S_IXOTH)
-	srt=subprocess.Popen('sudo hostfiles/start-srt-docker.sh', shell=True)
-	obe=subprocess.Popen('sudo hostfiles/start-obe-docker.sh', shell=True)
+	os.chmod(srtConnectPath+'/hostfiles/obe-entrypoint.sh', stat.S_IXOTH)
+	os.chmod(srtConnectPath+'/hostfiles/srt-entrypoint.sh', stat.S_IXOTH)
+	srt=subprocess.Popen('sudo '+srtConnectPath+'/hostfiles/start-srt-docker.sh', shell=True)
+	obe=subprocess.Popen('sudo '+srtConnectPath+'/hostfiles/start-obe-docker.sh', shell=True)
 	obe=subprocess.Popen('sudo echo && echo && echo && echo && echo ', shell=True)
 ########################### END START TRANSMISSION ##########################
 #############################################################################
+
+##########################  TX STATUS FILE UPDATE  ##########################
+#############################################################################
+def tx_status():
+	import stat
+	srt_launch_status_file = open(srtConnectPath+"/status_report/tx_launch.status", "wb")
+	srt_launch_status_file.write(bytes("[txStatus]\n", 'UTF-8'))
+	srt_launch_status_file.write(bytes("target_ip: " + args.target + "\n", 'UTF-8'))
+	srt_launch_status_file.write(bytes("vprofile: " + args.profile + "\n", 'UTF-8'))
+	srt_launch_status_file.close()
+
+########################### END STATUS FILE UPDATE ##########################
+#############################################################################
+
+
 
 #############################################################################
 #############################################################################
@@ -434,12 +447,12 @@ def rx():
 	messcolor.printc('blue', "STARTING: Build VLC Entrypoint Script")
 	from subprocess import call
 	import stat
-	vlc_entrypoint = open("hostfiles/vlc-entrypoint.sh", "wb")
+	vlc_entrypoint = open(srtConnectPath+"/hostfiles/vlc-entrypoint.sh", "wb")
 	vlc_entrypoint.write(bytes("#!/bin/bash\n", 'UTF-8'))
 	vlc_entrypoint.write(bytes("cvlc udp://@:4444 ", 'UTF-8'))
 	vlc_entrypoint.write(bytes("-I dummy ", 'UTF-8'))
 	vlc_entrypoint.write(bytes("--ignore-config ", 'UTF-8'))
-	vlc_entrypoint.write(bytes("--network-caching=\"350\" ", 'UTF-8'))
+	vlc_entrypoint.write(bytes("--network-caching=\"500\" ", 'UTF-8'))
 	vlc_entrypoint.write(bytes("--decklink-vout-video-connection sdi ", 'UTF-8'))
 	vlc_entrypoint.write(bytes("--decklink-mode Hi59 ", 'UTF-8'))
 	vlc_entrypoint.write(bytes("--decklink-aspect-ratio=16:9 ", 'UTF-8'))
@@ -452,7 +465,7 @@ def rx():
 
 	######### Begin building SRT entrypoint
 	messcolor.printc('blue', "STARTING: Build SRT Entrypoint Script")
-	srt_entrypoint = open("hostfiles/srt-entrypoint.sh", "wb")
+	srt_entrypoint = open(srtConnectPath+"/hostfiles/srt-entrypoint.sh", "wb")
 	srt_entrypoint.write(bytes("#!/bin/bash\n", 'UTF-8'))
 
 	if(args.mode=="client"):
@@ -462,14 +475,14 @@ def rx():
 		messcolor.printc('blue', "SETTING: SRT to server/listener mode")
 		srt_entrypoint.write(bytes("/home/srt/srt-live-transmit -s:2000 -r:2000 -v srt://0.0.0.0:3000/?mode=server udp://10.0.10.5:4444",'UTF-8'))
 	srt_entrypoint.close()
-	os.chmod('hostfiles/srt-entrypoint.sh', stat.S_IXOTH)
+	os.chmod(srtConnectPath+'/hostfiles/srt-entrypoint.sh', stat.S_IXOTH)
 	messcolor.printc('blue', "SUCCESS: SRT Entrypoint file created (hostfiles/srt-entrypoint.sh)")
 	print('\n')
 
 
 	######### Begin building VLC docker launcher
 	messcolor.printc('blue', "STARTING: Build VLC Docker Launcher Script")
-	vlc_start_docker = open("hostfiles/start-vlc-docker.sh", "wb")
+	vlc_start_docker = open(srtConnectPath+"/hostfiles/start-vlc-docker.sh", "wb")
 	vlc_start_docker.write(bytes("#!/bin/bash\n", 'UTF-8'))
 	vlc_start_docker.write(bytes("docker rm -f vlc-rx\n", 'UTF-8'))
 	vlc_start_docker.write(bytes("docker run ", 'UTF-8'))
@@ -477,20 +490,20 @@ def rx():
 	vlc_start_docker.write(bytes("--network=\"split\" ", 'UTF-8'))
 	vlc_start_docker.write(bytes("--ip=\"10.0.10.5\" ", 'UTF-8'))
 	vlc_start_docker.write(bytes("-p 4444:4444/udp ", 'UTF-8'))
-	vlc_start_docker.write(bytes("-v /home/" + user + "/apps/srt-connect-2/hostfiles:/home/hostfiles ", 'UTF-8'))
+	vlc_start_docker.write(bytes("-v "+srtConnectPath+"/hostfiles:/home/hostfiles ", 'UTF-8'))
 	vlc_start_docker.write(bytes("--privileged -i -t -d ", 'UTF-8'))
 	vlc_start_docker.write(bytes("--entrypoint=\"/home/hostfiles/vlc-entrypoint.sh\" ", 'UTF-8'))
 	##vlc_start_docker.write(bytes("--entrypoint=\"/bin/bash\" ", 'UTF-8'))
 	vlc_start_docker.write(bytes("pmw1/vlc \n", 'UTF-8'))
 	##vlc_start_docker.write(bytes("sudo docker attach vlc-rx\n", 'UTF-8'))
 	vlc_start_docker.close()
-	os.chmod('hostfiles/start-vlc-docker.sh', stat.S_IXOTH)
+	os.chmod(srtConnectPath+'/hostfiles/start-vlc-docker.sh', stat.S_IXOTH)
 	messcolor.printc('blue', "SUCCESS: VLC Docker Launcher file created (hostfiles/start-vlc-docker.sh)")
 	##print('\n')
 
 	######### Begin srt building docker launcher
 	messcolor.printc('blue', "STARTING: Build SRT Docker Launcher Script")
-	srt_start_docker = open("hostfiles/start-srt-docker.sh", "wb")
+	srt_start_docker = open(srtConnectPath+"/hostfiles/start-srt-docker.sh", "wb")
 	srt_start_docker.write(bytes("#!/bin/bash\n", 'UTF-8'))
 	srt_start_docker.write(bytes("docker rm -f srt-rx\n", 'UTF-8'))
 	srt_start_docker.write(bytes("docker run ", 'UTF-8'))
@@ -498,26 +511,27 @@ def rx():
 	srt_start_docker.write(bytes("--network=\"split\" ", 'UTF-8'))
 	srt_start_docker.write(bytes("--ip=\"10.0.10.4\" ", 'UTF-8'))
 	srt_start_docker.write(bytes("-p 3000:3000/udp ", 'UTF-8'))
-	srt_start_docker.write(bytes("-v /home/" + user + "/apps/srt-connect-2/hostfiles:/home/hostfiles ", 'UTF-8'))
+	srt_start_docker.write(bytes("-v "+srtConnectPath+"/hostfiles:/home/hostfiles ", 'UTF-8'))
 	srt_start_docker.write(bytes("--privileged -i -t -d ", 'UTF-8'))
 	srt_start_docker.write(bytes("--entrypoint=\"/home/hostfiles/srt-entrypoint.sh\" ", 'UTF-8'))
 	##srt_start_docker.write(bytes("--entrypoint=\"/bin/bash\" ", 'UTF-8'))
 	srt_start_docker.write(bytes("pmw1/srt \n", 'UTF-8'))
 	##srt_start_docker.write(bytes("sudo docker attach srt \n", 'UTF-8'))
 	srt_start_docker.close()
-	os.chmod('hostfiles/start-srt-docker.sh', stat.S_IXOTH)
+	os.chmod(srtConnectPath+'hostfiles/start-srt-docker.sh', stat.S_IXOTH)
 	messcolor.printc('blue', "SUCCESS: Completed Building SRT Docker Launcher Script")
 #############################  START RECEIVING  #############################
 #############################################################################
 	messcolor.printc('inverseblue', '---------------- STARTING RECEIVING --------------')
 	import subprocess
-	os.chmod('hostfiles/vlc-entrypoint.sh', stat.S_IXOTH)
-	os.chmod('hostfiles/srt-entrypoint.sh', stat.S_IXOTH)
-	srt=subprocess.Popen('sudo hostfiles/start-srt-docker.sh', shell=True)
-	obe=subprocess.Popen('sudo hostfiles/start-vlc-docker.sh', shell=True)
+	os.chmod(srtConnectPath+'/hostfiles/vlc-entrypoint.sh', stat.S_IXOTH)
+	os.chmod(srtConnectPath+'/hostfiles/srt-entrypoint.sh', stat.S_IXOTH)
+	srt=subprocess.Popen('sudo '+srtConnectPath+'/hostfiles/start-srt-docker.sh', shell=True)
+	obe=subprocess.Popen('sudo '+srtConnectPath+'/hostfiles/start-vlc-docker.sh', shell=True)
 	obe=subprocess.Popen('sudo echo && echo && echo && echo && echo ', shell=True)
 ########################### END START RECEIVING #############################
 #############################################################################
+
 
 ############################### END BUILD RX ################################
 #############################################################################
@@ -528,9 +542,6 @@ def rx():
 #############################################################################
 
 
-
-
-
 if (args.kill == '1'):
 	kill()
 
@@ -539,12 +550,25 @@ if(validateArgs()):
 	messcolor.printc('inverseblue','VALIDATED!')
 	print('\n')
 
+
+if os.path.exists(srtConnectPath+'/status_report/tx_launch.status'):
+	os.remove(srtConnectPath+"/status_report/tx_launch.status")
+
+
 ######## Build TX
 if(args.direction=='tx'):
 	tx()
+	time.sleep(2)
+	tx_status()
 ######## Build RX	
 if(args.direction=='rx'):
 	rx()
+	time.sleep(2)
+
+
+
+
+
 
 
 

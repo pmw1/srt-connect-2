@@ -19,6 +19,15 @@ case "$continue" in
 	;;
 esac
 
+
+#Install Prerequisit Packages
+sleep 1
+clear
+echo "Installing Prerequisit Packages ....."
+echo "" && echo "" && echo "" && echo "" && echo "" 
+sudo apt-get install -y iftop nload 
+
+
 #Install Blackmagic Drivers on Host System
 sleep 1
 clear

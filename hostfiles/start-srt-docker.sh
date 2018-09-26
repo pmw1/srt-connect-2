@@ -1,3 +1,4 @@
 #!/bin/bash
-docker rm -f srt-rx
-docker run --name="srt-rx" --network="split" --ip="10.0.10.4" -p 3000:3000/udp -v /home/pmw/apps/srt-connect-2/hostfiles:/home/hostfiles --privileged -i -t -d --entrypoint="/home/hostfiles/srt-entrypoint.sh" pmw1/srt 
+echo
+docker rm -f srt-tx
+docker run --name="srt-tx" --network="split" --ip="10.0.10.3" -p 4443:4443/udp -p 3000:3000/udp -v /home/pmw/apps/srt-connect-2/hostfiles:/home/hostfiles --privileged -i -t -d pmw1/srt 

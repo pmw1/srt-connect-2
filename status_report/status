@@ -1,0 +1,487 @@
+#!/usr/bin/python3
+import os
+import subprocess
+import string
+import socket
+import json
+import threading
+import time
+
+
+hostname=(socket.gethostname())
+interface_name="eno1"			# setting interface.  This should be importing from a general settings.
+
+
+############################## DEFINE STATUS OBJECT ############################
+################################################################################
+class status:
+	__station_ident = None
+	__target_ip = None
+	__source_ip = None
+	__tx_mode = None
+	__rx_mode = None
+	__tx_speed = None
+	__rx_speed = None
+	__dockers_list = None
+	__network_device = None
+	__vprofile = None
+	__proc_obe = None
+	__proc_vlc = None
+	__proc_count = None
+
+	def __init__(self):
+		self.__station_ident = hostname
+		self.__network_device = interface_name
+
+
+	def print(self):
+		print("station ident: \t", self.__station_ident)
+		print("target ip: \t", self.__target_ip)
+		print("source ip: \t", self.__source_ip)
+		print("TX mode: \t", self.__tx_mode)
+		print("RX mode: \t", self.__rx_mode)
+		print("TX speed: \t", self.__tx_speed)
+		print("RX speed: \t", self.__rx_speed)
+		print("Dockers List: \t", self.__dockers_list)
+		print("network device:\t", self.__network_device)
+		print("video profile:\t", self.__vprofile)
+		print("proc (obe):\t", self.__proc_obe)
+		print("proc (vlc):\t", self.__proc_vlc)
+		print("proc count:\t", self.__proc_count)
+
+	def set_target_ip(self, target_ip):
+		self.__target_ip = target_ip
+
+	def set_source_ip(self, source_ip):
+		self.__source_ip = source_ip
+
+	def set_tx_mode(self, tx_mode):
+		self.__tx_mode = tx_mode
+
+	def set_rx_mode(self, rx_mode):
+		self.__rx_mode = rx_mode
+
+	def set_tx_speed(self, tx_speed):
+		self.__tx_speed = tx_speed
+
+	def set_rx_speed(self, rx_speed):
+		self.__rx_speed = rx_speed
+
+	def set_dockers_list(self, dockers_list):
+		self.__dockers_list= dockers_list
+
+	def set_network_device(self, network_device):
+		self.__network_device= network_device
+
+	def set_vprofile(self, vprofile):
+		self.__vprofile= vprofile
+
+	def set_proc_obe(self, proc_obe):
+		self.__proc_obe= proc_obe
+
+	def set_proc_vlc(self, proc_vlc):
+		self.__proc_vlc= proc_vlc
+
+	def set_proc_count(self, proc_count):
+		self.__proc_count= proc_count
+
+	def get_station_ident(self):
+		return(self.__station_ident)
+
+	def get_target_ip(self):
+		return(self.__target_ip)
+
+	def get_source_ip(self):
+		return(self.__source_ip)
+
+	def get_tx_mode(self):
+		return(self.__tx_mode)
+
+	def get_rx_mode(self):
+		return(self.__rx_mode)
+
+	def get_tx_speed(self):
+		return(self.__tx_speed)
+
+	def get_rx_speed(self):
+		return(self.__rx_speed)
+
+	def get_dockers_list(self):
+		return(self.__dockers_list)
+
+	def get_network_device(self):
+		return(self.__network_device)
+
+	def get_vprofile(self):
+		return(self.__vprofile)
+
+	def get_proc_obe(self):
+		return(self.__proc_obe)
+
+	def get_proc_vlc(self):
+		return(self.__proc_vlc)
+
+	def get_proc_count(self):
+		return(self.__proc_count)
+
+	def get_status(self):
+		out={
+			"station_ident": self.__station_ident,
+			"target_ip": self.__target_ip,
+			"source_ip": self.__source_ip,
+			"tx_mode": self.__tx_mode,
+			"rx_mode": self.__rx_mode,
+			"tx_speed": self.__tx_speed,
+			"rx_speed": self.__rx_speed,
+			"dockers_list": self.__dockers_list,
+			"network_device": self.__network_device,
+			"vprofile": self.__vprofile,
+			"proc_obe": self.__proc_obe,
+			"proc_vlc": self.__proc_vlc,
+			"proc_count": self.__proc_count
+		}
+		return(out)
+
+
+
+
+############################ END DEFINE STATUS OBJECT ##########################
+################################################################################
+
+
+
+
+
+
+
+
+############################## LOAD RUNNING DOCKERS ############################
+################################################################################
+def loadRunningDockers():
+	while True:
+		#print("loading dockers list")
+		docker_ps = subprocess.Popen(["docker ps"], stdout=subprocess.PIPE, shell=True)
+		(out, err) = docker_ps.communicate()
+		out = out.splitlines() 							## split string into list variable at the \n
+		trash = out.pop(0) 								## remove first element (title line) of list and assign to trash variable
+		dockers_running=[]
+		for line in out:
+			line=line.split()  							## split based on spaces (note: each line will have a different amount)
+			count=len(line)-1  							## set count to string length and adjust for list starting at zero
+			docker_item=str(line[count]) 
+			docker_item=docker_item.replace('b\'','')	## replace 'b with nothing
+			docker_item=docker_item.replace('\'','') 	## replace ' with nothing 
+			dockers_running.append(docker_item)
+			#print(docker_item)
+			#print(dockers_running)
+
+
+		mainStatus.set_dockers_list(dockers_running)
+		time.sleep(5)
+############################ END LOAD RUNNING DOCKERS ##########################
+################################################################################
+
+
+
+def loadTransferSpeeds():
+	while True:
+		iftop = subprocess.Popen(["sudo iftop -n -ieno1 -t -s2 | grep \"Total\""], stdout=subprocess.PIPE, shell=True)
+		(out, err) = iftop.communicate()
+
+		out = out.splitlines()
+
+		i=0
+		for line in out:
+			line=line.split()
+			count=len(line)-3
+			line[count]=str(line[count])
+			measurement=line[count].replace('b\'','')
+			#measurement=measurement.replace('.','')
+			if measurement.endswith('K') or measurement.endswith('M'):
+				abbrv=measurement[-1:]
+				measurement=measurement[:-1]
+				#print(measurement, type(measurement))
+				#print(abbrv, type(abbrv))
+				measurement=float(measurement)
+				if abbrv == "K":
+					measurement=(measurement * 1000)
+
+				elif abbrv == "M":
+					measurement = (measurement * 1000000)
+			measurement=int(measurement)
+			##print("not-converted: ", measurement)
+			##print(type(measurement))
+			##measurement=round(measurement,2)
+			print(measurement)
+
+			if i == 0:
+			 	mainStatus.set_tx_speed(measurement)
+			elif i == 1:
+			 	mainStatus.set_rx_speed(measurement)
+		
+			i=i+1
+		
+		time.sleep(5)
+
+
+
+
+
+def loadTXstatusFile():
+	while True:
+		#print("loading tx status...")
+		if os.path.exists('tx_launch.status'):
+			statusfile=('tx_launch.status')
+			from configparser import ConfigParser
+			parser = ConfigParser()
+			parser.read(statusfile)
+			settings=dict(parser.items('txStatus'))
+			setting={}
+			setting['target_ip']=(settings.get('target_ip'))
+			setting['vprofile']=(settings.get('vprofile'))
+			mainStatus.set_target_ip(setting['target_ip'])
+			mainStatus.set_vprofile(setting['vprofile'])
+		time.sleep(5)
+
+
+
+
+def loadProcCount():
+	while True:
+		numprocs = subprocess.Popen(["cat /proc/cpuinfo | grep processor | wc -l"], stdout=subprocess.PIPE, shell=True)
+		(out, err) = numprocs.communicate()
+		out=str(out)
+		out=out.replace('b\'','')
+		out=out.replace(r'\n','')
+		out=out.replace('\'','')
+		out=int(out)
+		mainStatus.set_proc_count(out)
+	time.sleep(60)
+
+
+
+def loadProcessorConsumptionTX():
+	### OBE ##
+	while True:
+		#print('loading proccessor comsumption TX')
+		obeproc = subprocess.Popen(["sudo ps -A | grep obecli"], stdout=subprocess.PIPE, shell=True)
+		(out, err) = obeproc.communicate()
+		if(out):
+			out = out.splitlines()
+			for line in out:
+				line=line.split()
+				line[0]=str(line[0])
+				line[0]=line[0].replace('b\'','')
+				line[0]=line[0].replace('\'','')
+			if line[0]:
+				obeproc = subprocess.Popen(["ps -p " + line[0] + " -o %cpu,%mem,cmd"], stdout=subprocess.PIPE, shell=True)
+				(out, err) = obeproc.communicate()
+				out=out.splitlines()
+				line=out[1]
+				line=str(line)
+				line=line.replace('b\'','')
+				line=line.replace('\'','')
+				line=line.split()
+				mainStatus.set_proc_obe(line[0])
+		time.sleep(5)
+
+
+
+
+
+def loadProcessorConsumptionRX():
+	### VLC ###
+	while True:
+		vlcproc = subprocess.Popen(["sudo ps -A | grep \'vlc\' | grep -v \'entrypoint\'"], stdout=subprocess.PIPE, shell=True)
+		(out, err) = vlcproc.communicate()
+		if(out):
+			out = out.splitlines()
+			for line in out:
+				line=line.split()
+				line[0]=str(line[0])
+				line[0]=line[0].replace('b\'','')
+				line[0]=line[0].replace('\'','')
+			if line[0]:
+				obeproc = subprocess.Popen(["ps -p " + line[0] + " -o %cpu,%mem,cmd"], stdout=subprocess.PIPE, shell=True)
+				(out, err) = obeproc.communicate()
+				out=out.splitlines()
+				line=out[1]
+				line=str(line)
+				line=line.replace('b\'','')
+				line=line.replace('\'','')
+				line=line.split()
+				mainStatus.set_proc_vlc(line[0])
+				#mainStatus.set_proc_obe(line[0])
+		time.sleep(5)
+
+
+
+
+
+
+
+
+
+
+def printReturn():
+	print("---*** start return data ***---")
+	print("station_ident " , mainStatus.get_station_ident())
+	print("target_ip " , mainStatus.get_target_ip())
+	print("source_ip " , mainStatus.get_source_ip())
+	print("tx_mode " , mainStatus.get_tx_mode())
+	print("rx_mode " , mainStatus.get_rx_mode())
+	print("tx_speed " , mainStatus.get_tx_speed())
+	print("rx_speed " , mainStatus.get_rx_speed())
+	print("dockers_list " , mainStatus.get_dockers_list())
+	print("network_device " , mainStatus.get_network_device())
+	print("vprofile " , mainStatus.get_vprofile())
+	print("proc_obe " , mainStatus.get_proc_obe())
+	print("proc_vlc " , mainStatus.get_proc_vlc())
+	print("proc_count " , mainStatus.get_proc_count())
+
+
+
+
+
+
+def startStatusServer():
+	print('starting status server...')
+	import socket
+	host=''
+	print(host)
+	port=9999
+	statusServer=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	statusServer.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+	statusServer.bind((host,port))
+	statusServer.listen(1)
+	conn, addr = statusServer.accept()
+	with conn:
+		print("Connection from: ", addr)
+		conn.sendall("welcome to Video Appliance\n\r".encode())
+		while True:
+			data=conn.recv(1024)
+			clientrequest=data.decode('utf-8')
+			clientrequest=clientrequest.replace("\n", "")
+			clientrequest=clientrequest.replace("\r", "")
+			print(clientrequest)
+
+			if clientrequest == "station_ident":
+				conn.sendall(mainStatus.get_station_ident().encode()+"\r\n".encode())
+			elif clientrequest == "target_ip":
+				if(mainStatus.get_target_ip()):
+					conn.sendall(mainStatus.get_target_ip().encode()+"\r\n".encode())
+			elif clientrequest == "source_ip":
+				if(mainStatus.get_source_ip()):
+					conn.sendall(mainStatus.get_source_ip().encode()+"\r\n".encode())
+			elif clientrequest == "tx_mode":
+				if(mainStatus.get_tx_mode()):
+					conn.sendall(mainStatus.get_tx_mode().encode()+"\r\n".encode())
+			elif clientrequest == "tx_mode":
+				if(mainStatus.get_tx_mode()):
+					conn.sendall(mainStatus.get_tx_mode().encode()+"\r\n".encode())
+			elif clientrequest == "rx_mode":
+				if(mainStatus.get_rx_mode()):
+					conn.sendall(mainStatus.get_rx_mode().encode()+"\r\n".encode())
+			elif clientrequest == "tx_speed":
+				if(mainStatus.get_tx_speed()):
+					conn.sendall(str(mainStatus.get_tx_speed()).encode()+"\r\n".encode())
+			elif clientrequest == "rx_speed":
+				if(mainStatus.get_rx_speed()):
+					conn.sendall(str(mainStatus.get_rx_speed()).encode()+"\r\n".encode())
+			elif clientrequest == "dockers_list":
+				if(mainStatus.get_dockers_list()):
+					conn.sendall(str(mainStatus.get_dockers_list()).encode()+"\r\n".encode())
+			elif clientrequest == "network_device":
+				if(mainStatus.get_network_device()):
+					conn.sendall(str(mainStatus.get_network_device()).encode()+"\r\n".encode())
+			elif clientrequest == "vprofile":
+				if(mainStatus.get_vprofile()):
+					conn.sendall(str(mainStatus.get_vprofile()).encode()+"\r\n".encode())
+			elif clientrequest == "proc_obe":
+				if(mainStatus.get_proc_obe()):
+					conn.sendall(str(mainStatus.get_proc_obe()).encode()+"\r\n".encode())
+			elif clientrequest == "proc_vlc":
+				if(mainStatus.get_proc_vlc()):
+					conn.sendall(str(mainStatus.get_proc_vlc()).encode()+"\r\n".encode())
+			elif clientrequest == "proc_count":
+				if(mainStatus.get_proc_count()):
+					conn.sendall(str(mainStatus.get_proc_count()).encode()+"\r\n".encode())
+			elif clientrequest == "status":
+				result=mainStatus.get_status()
+				#status=str(mainStatus)
+				status=json.dumps(result)
+				conn.sendall(status.encode()+"\r\n".encode())
+				#print(status)
+			if clientrequest=="quit":
+				conn.sendall('goodbye\n\r'.encode())
+				conn.close()
+				break
+
+
+
+
+
+mainStatus = status()
+
+
+#loadRunningDockers()
+#loadTransferSpeeds()
+
+threadLoadTransferSpeeds = threading.Thread(target=loadTransferSpeeds, args=())
+threadLoadTransferSpeeds.start()
+
+threadLoadRunningDockers = threading.Thread(target=loadRunningDockers, args=())
+threadLoadRunningDockers.start()
+
+
+#loadTXstatusFile()
+threadLoadTXstatusFile = threading.Thread(target=loadTXstatusFile, args=())
+threadLoadTXstatusFile.start()
+
+#loadProcCount()
+threadLoadProcCount = threading.Thread(target=loadProcCount, args=())
+threadLoadProcCount.start()
+
+
+#loadProcessorConsumptionTX()
+threadLoadProcessorConsumptionTX = threading.Thread(target=loadProcessorConsumptionTX, args=())
+threadLoadProcessorConsumptionTX.start()
+
+
+#loadProcessorConsumptionRX()
+threadLoadProcessorConsumptionRX = threading.Thread(target=loadProcessorConsumptionRX, args=())
+threadLoadProcessorConsumptionRX.start()
+
+
+printReturn()
+
+while True:
+	startStatusServer()
+
+
+printReturn()
+
+
+
+
+
+
+
+
+
+#mainStatus.print()
+#printReturn()
+
+
+
+
+
+
+
+
+
+
+
+
+
+

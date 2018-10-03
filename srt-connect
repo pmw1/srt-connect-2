@@ -198,7 +198,8 @@ def tx():
 
 	## Build Entrypoint
 	import stat
-	obe_send_file = open(srtConnectPath+"/hostfiles/obe-entrypoint.sh", "wb")
+	filepath=(srtConnectPath + "/hostfiles/obe-entrypoint.sh")
+	obe_send_file = open(filepath, "wb")
 	obe_send_file.write(bytes("#!/bin/bash\n", 'UTF-8'))
 	obe_send_file.write(bytes("NAME=obe\n", 'UTF-8'))
 	obe_send_file.write(bytes("screen  -d -m -S $NAME obecli\n", 'UTF-8'))
@@ -336,7 +337,7 @@ def tx():
 	obe_start_docker.write(bytes("--device /dev/blackmagic/io0 ", 'UTF-8'))
 	obe_start_docker.write(bytes("pmw1/obe-rt \n", 'UTF-8'))
 	obe_start_docker.close()
-	os.chmod(srtConnectPath+'/hostfiles/start-obe-docker.sh', stat.S_IXOTH)
+	os.chmod(srtConnectPath+'/hostfiles/start-obe-docker.sh', stat.S_IXOTH | stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
 	messcolor.printc('blue', "SUCCESS: Docker launcher file created (hostfiles/start-obe-docker.sh)")
 	print('\n')
 ######################### END BUILD OBE DOCKER LAUNCHER #####################
@@ -359,7 +360,7 @@ def tx():
 		messcolor.printc('blue', "SETTING: SRT to server/listener mode")
 		srt_entrypoint.write(bytes("/home/srt/srt-live-transmit -r:2000 -s:2000 -v udp://0.0.0.0:4443 srt://0.0.0.0:3000/?mode=server",'UTF-8'))
 	srt_entrypoint.close()
-	os.chmod(srtConnectPath+'/hostfiles/srt-entrypoint.sh', stat.S_IXOTH)
+	os.chmod(srtConnectPath+'/hostfiles/srt-entrypoint.sh', stat.S_IXOTH | stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
 	messcolor.printc('blue', "SUCCESS: SRT Entrypoint file created (hostfiles/srt-entrypoint.sh)")
 	print('\n')
 ######################### END BUILD SRT ENTRYPOINT ##########################
@@ -388,7 +389,7 @@ def tx():
 	##srt_start_docker.write(bytes("--entrypoint=\"/bin/bash\" ", 'UTF-8'))
 	srt_start_docker.write(bytes("pmw1/srt \n", 'UTF-8'))
 	srt_start_docker.close()
-	os.chmod(srtConnectPath+'/hostfiles/start-srt-docker.sh', stat.S_IXOTH)
+	os.chmod(srtConnectPath+'/hostfiles/start-srt-docker.sh', stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
 	messcolor.printc('blue', "SUCCESS: SRT Docker Launcher file created (hostfiles/start-srt-docker.sh)")
 	##print('\n')
 	messcolor.printc('inverseblue', '---------------- CREATED TX ENVIRONMENT --------------')
@@ -405,10 +406,10 @@ def tx():
 #############################################################################
 	messcolor.printc('inverseblue', '---------------- STARTING TRANSMISSION --------------')
 	import subprocess
-	os.chmod(srtConnectPath+'/hostfiles/obe-entrypoint.sh', stat.S_IXOTH)
-	os.chmod(srtConnectPath+'/hostfiles/srt-entrypoint.sh', stat.S_IXOTH)
-	srt=subprocess.Popen('sudo '+srtConnectPath+'/hostfiles/start-srt-docker.sh', shell=True)
-	obe=subprocess.Popen('sudo '+srtConnectPath+'/hostfiles/start-obe-docker.sh', shell=True)
+	#os.chmod(srtConnectPath+'/hostfiles/obe-entrypoint.sh', stat.S_IXOTH)
+	#os.chmod(srtConnectPath+'/hostfiles/srt-entrypoint.sh', stat.S_IXOTH)
+	srt=subprocess.Popen(srtConnectPath+'/hostfiles/start-srt-docker.sh', shell=True)
+	obe=subprocess.Popen(srtConnectPath+'/hostfiles/start-obe-docker.sh', shell=True)
 	obe=subprocess.Popen('sudo echo && echo && echo && echo && echo ', shell=True)
 ########################### END START TRANSMISSION ##########################
 #############################################################################
@@ -475,7 +476,7 @@ def rx():
 		messcolor.printc('blue', "SETTING: SRT to server/listener mode")
 		srt_entrypoint.write(bytes("/home/srt/srt-live-transmit -s:2000 -r:2000 -v srt://0.0.0.0:3000/?mode=server udp://10.0.10.5:4444",'UTF-8'))
 	srt_entrypoint.close()
-	os.chmod(srtConnectPath+'/hostfiles/srt-entrypoint.sh', stat.S_IXOTH)
+	os.chmod(srtConnectPath+'/hostfiles/srt-entrypoint.sh', stat.S_IXOTH | stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
 	messcolor.printc('blue', "SUCCESS: SRT Entrypoint file created (hostfiles/srt-entrypoint.sh)")
 	print('\n')
 
@@ -497,7 +498,7 @@ def rx():
 	vlc_start_docker.write(bytes("pmw1/vlc \n", 'UTF-8'))
 	##vlc_start_docker.write(bytes("sudo docker attach vlc-rx\n", 'UTF-8'))
 	vlc_start_docker.close()
-	os.chmod(srtConnectPath+'/hostfiles/start-vlc-docker.sh', stat.S_IXOTH)
+	os.chmod(srtConnectPath+'/hostfiles/start-vlc-docker.sh', stat.S_IXOTH | stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
 	messcolor.printc('blue', "SUCCESS: VLC Docker Launcher file created (hostfiles/start-vlc-docker.sh)")
 	##print('\n')
 
@@ -518,16 +519,16 @@ def rx():
 	srt_start_docker.write(bytes("pmw1/srt \n", 'UTF-8'))
 	##srt_start_docker.write(bytes("sudo docker attach srt \n", 'UTF-8'))
 	srt_start_docker.close()
-	os.chmod(srtConnectPath+'hostfiles/start-srt-docker.sh', stat.S_IXOTH)
+	os.chmod(srtConnectPath+'hostfiles/start-srt-docker.sh',  stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
 	messcolor.printc('blue', "SUCCESS: Completed Building SRT Docker Launcher Script")
 #############################  START RECEIVING  #############################
 #############################################################################
 	messcolor.printc('inverseblue', '---------------- STARTING RECEIVING --------------')
 	import subprocess
-	os.chmod(srtConnectPath+'/hostfiles/vlc-entrypoint.sh', stat.S_IXOTH)
-	os.chmod(srtConnectPath+'/hostfiles/srt-entrypoint.sh', stat.S_IXOTH)
-	srt=subprocess.Popen('sudo '+srtConnectPath+'/hostfiles/start-srt-docker.sh', shell=True)
-	obe=subprocess.Popen('sudo '+srtConnectPath+'/hostfiles/start-vlc-docker.sh', shell=True)
+	os.chmod(srtConnectPath+'/hostfiles/vlc-entrypoint.sh', stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
+	os.chmod(srtConnectPath+'/hostfiles/srt-entrypoint.sh', stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
+	srt=subprocess.Popen(srtConnectPath+'/hostfiles/start-srt-docker.sh', shell=True)
+	obe=subprocess.Popen(srtConnectPath+'/hostfiles/start-vlc-docker.sh', shell=True)
 	obe=subprocess.Popen('sudo echo && echo && echo && echo && echo ', shell=True)
 ########################### END START RECEIVING #############################
 #############################################################################
@@ -540,6 +541,15 @@ def rx():
 #############################################################################
 #############################################################################
 #############################################################################
+
+
+def clearOld():
+	import subprocess
+	clearOld=subprocess.Popen('rm ' + '-f ' + srtConnectPath + '/hostfiles/*.sh', shell=True)
+	
+
+
+
 
 
 if (args.kill == '1'):
@@ -557,6 +567,7 @@ if os.path.exists(srtConnectPath+'/status_report/tx_launch.status'):
 
 ######## Build TX
 if(args.direction=='tx'):
+	clearOld()
 	tx()
 	time.sleep(2)
 	tx_status()

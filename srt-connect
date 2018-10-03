@@ -498,7 +498,7 @@ def rx():
 	vlc_start_docker.write(bytes("pmw1/vlc \n", 'UTF-8'))
 	##vlc_start_docker.write(bytes("sudo docker attach vlc-rx\n", 'UTF-8'))
 	vlc_start_docker.close()
-	os.chmod(srtConnectPath+'/hostfiles/start-vlc-docker.sh', stat.S_IXOTH | stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
+	os.chmod(srtConnectPath+'/hostfiles/start-vlc-docker.sh', stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
 	messcolor.printc('blue', "SUCCESS: VLC Docker Launcher file created (hostfiles/start-vlc-docker.sh)")
 	##print('\n')
 
@@ -519,7 +519,7 @@ def rx():
 	srt_start_docker.write(bytes("pmw1/srt \n", 'UTF-8'))
 	##srt_start_docker.write(bytes("sudo docker attach srt \n", 'UTF-8'))
 	srt_start_docker.close()
-	os.chmod(srtConnectPath+'hostfiles/start-srt-docker.sh',  stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
+	os.chmod(srtConnectPath+'/hostfiles/start-srt-docker.sh',  stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
 	messcolor.printc('blue', "SUCCESS: Completed Building SRT Docker Launcher Script")
 #############################  START RECEIVING  #############################
 #############################################################################

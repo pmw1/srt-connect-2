@@ -410,7 +410,7 @@ def tx():
 	#os.chmod(srtConnectPath+'/hostfiles/srt-entrypoint.sh', stat.S_IXOTH)
 	srt=subprocess.Popen(srtConnectPath+'/hostfiles/start-srt-docker.sh', shell=True)
 	obe=subprocess.Popen(srtConnectPath+'/hostfiles/start-obe-docker.sh', shell=True)
-	obe=subprocess.Popen('sudo echo && echo && echo && echo && echo ', shell=True)
+	obe=subprocess.Popen('echo && echo && echo && echo && echo ', shell=True)
 ########################### END START TRANSMISSION ##########################
 #############################################################################
 
@@ -476,7 +476,7 @@ def rx():
 		messcolor.printc('blue', "SETTING: SRT to server/listener mode")
 		srt_entrypoint.write(bytes("/home/srt/srt-live-transmit -s:2000 -r:2000 -v srt://0.0.0.0:3000/?mode=server udp://10.0.10.5:4444",'UTF-8'))
 	srt_entrypoint.close()
-	os.chmod(srtConnectPath+'/hostfiles/srt-entrypoint.sh', stat.S_IXOTH | stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
+	os.chmod(srtConnectPath+'/hostfiles/srt-entrypoint.sh', stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
 	messcolor.printc('blue', "SUCCESS: SRT Entrypoint file created (hostfiles/srt-entrypoint.sh)")
 	print('\n')
 
@@ -485,8 +485,8 @@ def rx():
 	messcolor.printc('blue', "STARTING: Build VLC Docker Launcher Script")
 	vlc_start_docker = open(srtConnectPath+"/hostfiles/start-vlc-docker.sh", "wb")
 	vlc_start_docker.write(bytes("#!/bin/bash\n", 'UTF-8'))
-	vlc_start_docker.write(bytes("docker rm -f vlc-rx\n", 'UTF-8'))
-	vlc_start_docker.write(bytes("docker run ", 'UTF-8'))
+	vlc_start_docker.write(bytes("sudo docker rm -f vlc-rx\n", 'UTF-8'))
+	vlc_start_docker.write(bytes("sudo docker run ", 'UTF-8'))
 	vlc_start_docker.write(bytes("--name=\"vlc-rx\" ", 'UTF-8'))
 	vlc_start_docker.write(bytes("--network=\"split\" ", 'UTF-8'))
 	vlc_start_docker.write(bytes("--ip=\"10.0.10.5\" ", 'UTF-8'))
@@ -506,8 +506,8 @@ def rx():
 	messcolor.printc('blue', "STARTING: Build SRT Docker Launcher Script")
 	srt_start_docker = open(srtConnectPath+"/hostfiles/start-srt-docker.sh", "wb")
 	srt_start_docker.write(bytes("#!/bin/bash\n", 'UTF-8'))
-	srt_start_docker.write(bytes("docker rm -f srt-rx\n", 'UTF-8'))
-	srt_start_docker.write(bytes("docker run ", 'UTF-8'))
+	srt_start_docker.write(bytes("sudo docker rm -f srt-rx\n", 'UTF-8'))
+	srt_start_docker.write(bytes("sudo docker run ", 'UTF-8'))
 	srt_start_docker.write(bytes("--name=\"srt-rx\" ", 'UTF-8'))
 	srt_start_docker.write(bytes("--network=\"split\" ", 'UTF-8'))
 	srt_start_docker.write(bytes("--ip=\"10.0.10.4\" ", 'UTF-8'))
@@ -529,7 +529,7 @@ def rx():
 	os.chmod(srtConnectPath+'/hostfiles/srt-entrypoint.sh', stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
 	srt=subprocess.Popen(srtConnectPath+'/hostfiles/start-srt-docker.sh', shell=True)
 	obe=subprocess.Popen(srtConnectPath+'/hostfiles/start-vlc-docker.sh', shell=True)
-	obe=subprocess.Popen('sudo echo && echo && echo && echo && echo ', shell=True)
+	obe=subprocess.Popen(' echo && echo && echo && echo && echo ', shell=True)
 ########################### END START RECEIVING #############################
 #############################################################################
 

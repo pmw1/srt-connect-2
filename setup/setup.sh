@@ -3,6 +3,8 @@
 clear
 read -r -p  "home directory (user) for apps directory:" user
 
+sudo chown -R $user:$user /home/$user
+
 clear
 echo "--------------------------------------------------------------------------------------"
 echo "************************************* WARNING ****************************************"
@@ -42,6 +44,14 @@ echo "Installing DKMS ....."
 sudo apt-get install -y dkms
 echo "" && echo "" && echo ""
 sleep 5
+
+
+echo "Downloading software from AWS....."
+
+cd /home/$user/apps/srt-connect-2/dockers/decklink-10.11.1
+wget https://s3.amazonaws.com/files.polarismediaworks.com/Blackmagic_Desktop_Video_Linux_10.11.1.tar
+tar xvf Blackmagic_Desktop_Video_Linux_10.11.1.tar
+
 
 
 echo "Installing Blackmagic Drivers on Host System ....."
@@ -149,6 +159,7 @@ case "$buildSRTDocker" in
 	echo "" && echo "" && echo ""
 	echo "Building SRT Docker./..."
 	cd /home/$user/apps/srt-connect-2/dockers/srt
+	git clone https://github.com/Haivision/srt.git
 	sudo docker build -t pmw1/srt .
 	;;
 	[nN])

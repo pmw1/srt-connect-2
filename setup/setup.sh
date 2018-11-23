@@ -49,8 +49,12 @@ sleep 5
 echo "Downloading software from AWS....."
 
 cd /home/$user/apps/srt-connect-2/dockers/decklink-10.11.1
+if [ -f "/home/$user/apps/srt-connect-2/dockers/decklink-10.11.1/Blackmagic_Desktop_Video_Linux_10.11.1.tar" ]; then
+	rm -f /home/$user/apps/srt-connect-2/dockers/decklink-10.11.1/Blackmagic_Desktop_Video_Linux_10.11.1.tar
+fi
 wget https://s3.amazonaws.com/files.polarismediaworks.com/Blackmagic_Desktop_Video_Linux_10.11.1.tar
 tar xvf Blackmagic_Desktop_Video_Linux_10.11.1.tar
+
 
 
 
@@ -80,7 +84,7 @@ sudo cp /usr/lib/libDeckLinkPreviewAPI.so /home/$user/apps/srt-connect-2/dockers
 sudo cp /usr/lib/libDeckLinkAPI.so /home/$user/apps/srt-connect-2/dockers/vlc
 echo "Finished Blackmagic Setup....."
 echo "" && echo "" && echo ""
-sleep 5
+sleep 1
 
 
 # Install Docker and Docker Network
@@ -104,7 +108,7 @@ case "$installDocker" in
 	echo "skipping Docker install..."
 esac
 echo "" && echo "" && echo ""
-sleep 5
+sleep 1
 
 
 read -r -p  "Do you wish to build Decklink Docker? (y/N): " buildDecklinkDocker
@@ -135,7 +139,7 @@ case "$buildObeDocker" in
 	echo "Skipping OBE-RT Docker Build...."
 esac
 echo "" && echo "" && echo ""
-sleep 5
+sleep 1
 
 ##Build VLC Docker
 read -r -p  "Do you wish to build VLC Docker? (y/N): " buildVLCDocker
@@ -167,4 +171,17 @@ case "$buildSRTDocker" in
 esac
 
 
-
+##Configuring Permissions
+read -r -p  "Do you wish to configure permissions now (y/N): " configurePerms
+case "$configurePerms" in
+	[yY])
+	echo "" && echo "" && echo ""
+	echo "setting docker to run without password..."
+	sudo docker gpasswd -a $user docker
+	
+	echo "YOU MUST NOW: modify /etc/sudoers to allow admin privs for srt-connect and docker"
+	;;
+	[nN])
+	echo "Skipping...."
+	;;
+esac

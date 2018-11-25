@@ -178,8 +178,7 @@ case "$configurePerms" in
 	echo "" && echo "" && echo ""
 	echo "setting docker to run without password..."
 	sudo docker gpasswd -a $user docker
-	
-	echo "YOU MUST NOW: modify /etc/sudoers to allow admin privs for srt-connect and docker"
+	sudo chown -R /home/$user/apps/srt-connect-2
 	;;
 	[nN])
 	echo "Skipping...."

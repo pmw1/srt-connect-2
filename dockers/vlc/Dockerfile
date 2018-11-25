@@ -88,10 +88,10 @@ RUN apt-get -y install libqt5x11extras5-dev wayland-protocols
 
 WORKDIR /data
 RUN git clone https://github.com/videolan/vlc.git
-#RUN git clone http://git.videolan.org/git/vlc/vlc-3.0.git
 WORKDIR /data/vlc
+RUN git checkout 32ab3f71fbb9fcba0c91ec700dccf9060806f679 .
 RUN ./bootstrap
-RUN ./configure --disable-a52 --disable-xcb --enable-twolame --enable-dvbpsi --enable-lua --enable-run-as-root --disable-chromecast --enable-x264  --disable-libmpeg2 --enable-decklink --with-decklink-sdk=/data/DecklinkSDK/Linux 
+RUN ./configure --disable-qt --disable-a52 --disable-xcb --enable-twolame --enable-dvbpsi --enable-lua --enable-run-as-root --disable-chromecast --enable-x264  --disable-libmpeg2 --enable-decklink --with-decklink-sdk=/data/DecklinkSDK/Linux 
 RUN make && make install
 RUN rm -rf /data/vlc-3.0
 RUN ldconfig

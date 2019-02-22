@@ -177,8 +177,8 @@ case "$configurePerms" in
 	[yY])
 	echo "" && echo "" && echo ""
 	echo "setting docker to run without password..."
-	sudo docker gpasswd -a $user docker
-	sudo chown -R /home/$user/apps/srt-connect-2
+	sudo gpasswd -a $user docker
+	sudo chown -R $user:$user /home/$user/apps/srt-connect-2
 	;;
 	[nN])
 	echo "Skipping...."

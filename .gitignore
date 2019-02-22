@@ -3,3 +3,4 @@ hostfiles/srt-entrypoint.sh
 hostfiles/start-srt-docker.sh
 hostfiles/start-vlc-docker.sh
 hostfiles/vlc-entrypoint.sh
+**/dockers/decklink-10.11.1/

@@ -25,6 +25,7 @@ if __name__ == "__main__":
 	parser.add_argument('--target', '-t', help="Target IP destination identity")
 	parser.add_argument('--mode', '-m', help="SRT mode (client/server/rvue)")
 	parser.add_argument('--profile', '-p', help="Encoding profile preset")
+	parser.add_argument('--port', '-P', help="Port for Transmission")
 	parser.add_argument('--direction', '-d', help="Direction of stream (tx/rx)")
 	parser.add_argument('--kill', '-k', help="set to \'1\' to kill both containers")
 	args = parser.parse_args()
@@ -66,6 +67,9 @@ def validateArgs():
 		messcolor.printc('red', 'You must include a profile. (-p 1080i_8mbps)')
 		killrun = True
 	
+	if (args.port is None):
+		messcolor.printc('red', 'You must include a port number for the SRT connection  (-P 3000)')
+		killrun = True	
 
 	if (args.direction is None):
 		messcolor.printc('red', 'You must include a direction. (-d tx) or (-d rx)')
@@ -355,10 +359,10 @@ def tx():
 	srt_entrypoint.write(bytes("#!/bin/bash\n", 'UTF-8'))
 	if(args.mode=="client"):
 		messcolor.printc('blue', "SETTING: SRT to client/caller mode")
-		srt_entrypoint.write(bytes("/home/srt/srt-live-transmit -r:2000 -s:2000 -v udp://0.0.0.0:4443/?mode=client srt://" + args.target + ":3000",'UTF-8'))
+		srt_entrypoint.write(bytes("/home/srt/srt-live-transmit -r:2000 -s:2000 -v udp://0.0.0.0:4443/?mode=client srt://" + args.target + ":" + args.port,'UTF-8'))
 	if(args.mode=="server"):
 		messcolor.printc('blue', "SETTING: SRT to server/listener mode")
-		srt_entrypoint.write(bytes("/home/srt/srt-live-transmit -r:2000 -s:2000 -v udp://0.0.0.0:4443 srt://0.0.0.0:3000/?mode=server",'UTF-8'))
+		srt_entrypoint.write(bytes("/home/srt/srt-live-transmit -r:2000 -s:2000 -v udp://0.0.0.0:4443 srt://0.0.0.0:" + args.port + "/?mode=server",'UTF-8'))
 	srt_entrypoint.close()
 	os.chmod(srtConnectPath+'/hostfiles/srt-entrypoint.sh', stat.S_IXOTH | stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
 	messcolor.printc('blue', "SUCCESS: SRT Entrypoint file created (hostfiles/srt-entrypoint.sh)")
@@ -383,7 +387,7 @@ def tx():
 	srt_start_docker.write(bytes("--network=\"split\" ", 'UTF-8'))
 	srt_start_docker.write(bytes("--ip=\"10.0.10.3\" ", 'UTF-8'))
 	srt_start_docker.write(bytes("-p 4443:4443/udp ", 'UTF-8'))
-	srt_start_docker.write(bytes("-p 3000:3000/udp ", 'UTF-8'))
+	srt_start_docker.write(bytes("-p " + args.port + ":" + args.port + "/udp ", 'UTF-8'))
 	srt_start_docker.write(bytes("-v "+srtConnectPath+"/hostfiles:/home/hostfiles ", 'UTF-8'))
 	srt_start_docker.write(bytes("--privileged -i -t -d ", 'UTF-8'))
 	##srt_start_docker.write(bytes("--entrypoint=\"/bin/bash\" ", 'UTF-8'))
@@ -471,10 +475,10 @@ def rx():
 
 	if(args.mode=="client"):
 		messcolor.printc('blue', "SETTING: SRT to client/caller mode")
-		srt_entrypoint.write(bytes("/home/srt/srt-live-transmit -s:2000 -r:2000 -v srt://0.0.0.0:3000/?mode=client udp://10.0.10.5:4444",'UTF-8'))
+		srt_entrypoint.write(bytes("/home/srt/srt-live-transmit -s:2000 -r:2000 -v srt://0.0.0.0:" + args.port + "/?mode=client udp://10.0.10.5:4444",'UTF-8'))
 	if(args.mode=="server"):
 		messcolor.printc('blue', "SETTING: SRT to server/listener mode")
-		srt_entrypoint.write(bytes("/home/srt/srt-live-transmit -s:2000 -r:2000 -v srt://0.0.0.0:3000/?mode=server udp://10.0.10.5:4444",'UTF-8'))
+		srt_entrypoint.write(bytes("/home/srt/srt-live-transmit -s:2000 -r:2000 -v srt://0.0.0.0:" + args.port + "/?mode=server udp://10.0.10.5:4444",'UTF-8'))
 	srt_entrypoint.close()
 	os.chmod(srtConnectPath+'/hostfiles/srt-entrypoint.sh', stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
 	messcolor.printc('blue', "SUCCESS: SRT Entrypoint file created (hostfiles/srt-entrypoint.sh)")
@@ -502,7 +506,7 @@ def rx():
 	messcolor.printc('blue', "SUCCESS: VLC Docker Launcher file created (hostfiles/start-vlc-docker.sh)")
 	##print('\n')
 
-	######### Begin srt building docker launcher
+	######### Begin srt building docker launcher (rx)
 	messcolor.printc('blue', "STARTING: Build SRT Docker Launcher Script")
 	srt_start_docker = open(srtConnectPath+"/hostfiles/start-srt-docker.sh", "wb")
 	srt_start_docker.write(bytes("#!/bin/bash\n", 'UTF-8'))
@@ -511,7 +515,7 @@ def rx():
 	srt_start_docker.write(bytes("--name=\"srt-rx\" ", 'UTF-8'))
 	srt_start_docker.write(bytes("--network=\"split\" ", 'UTF-8'))
 	srt_start_docker.write(bytes("--ip=\"10.0.10.4\" ", 'UTF-8'))
-	srt_start_docker.write(bytes("-p 3000:3000/udp ", 'UTF-8'))
+	srt_start_docker.write(bytes("-p " + args.port + ":" + args.port +"/udp ", 'UTF-8'))
 	srt_start_docker.write(bytes("-v "+srtConnectPath+"/hostfiles:/home/hostfiles ", 'UTF-8'))
 	srt_start_docker.write(bytes("--privileged -i -t -d ", 'UTF-8'))
 	srt_start_docker.write(bytes("--entrypoint=\"/home/hostfiles/srt-entrypoint.sh\" ", 'UTF-8'))

@@ -41,7 +41,7 @@ def kill():
 		killsrt=os.system('docker rm -f obe-rt')
 		killsrt=os.system('docker rm -f srt-tx')
 		messcolor.printc('inversered', 'RX containers killed')
-	else if (args.direction=="rx"):
+	else:
 		killvlc=os.system('docker rm -f vlc-rx')
 		killsrt=os.system('docker rm -f srt-rx')
 		messcolor.printc('inversered', 'RX containers killed')

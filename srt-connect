@@ -35,14 +35,17 @@ if __name__ == "__main__":
 
 ############################ DEF KILL FUNCTION ##############################
 #############################################################################
-def kill():
-	killvlc=os.system('docker rm -f vlc-rx')
-	killsrt=os.system('docker rm -f obe-rt')
-	killsrt=os.system('docker rm -f srt-tx')
-	killsrt=os.system('docker rm -f srt-rx')
-	messcolor.printc('inversered', '********************    ALL CONTAINTERS KILLED !!   *******************')
-	quit()
 
+def kill():
+	if ( args.direction=="tx"):
+		killsrt=os.system('docker rm -f obe-rt')
+		killsrt=os.system('docker rm -f srt-tx')
+		messcolor.printc('inversered', 'RX containers killed')
+	else if (args.direction=="rx"):
+		killvlc=os.system('docker rm -f vlc-rx')
+		killsrt=os.system('docker rm -f srt-rx')
+		messcolor.printc('inversered', 'RX containers killed')
+	quit()
 
 
 ######################## DEF VALIDATE INPUT ARGS ############################

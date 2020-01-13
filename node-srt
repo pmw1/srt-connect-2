@@ -1,0 +1,57 @@
+#!/usr/bin/python3
+
+#### Imports
+import sys
+import random
+import os
+import time
+import subprocess
+#### Import Custom Modules
+import messcolor
+
+user=os.getlogin()
+path=('/home/'+user+'/apps/srt-connect-2')
+
+
+
+
+def buildSrtEntrypoint():
+	srt_entrypoint = open(path+"/hostfiles/srt-entrypoint.sh", "wb")
+	srt_entrypoint.write(bytes("#!/bin/bash\n", 'UTF-8'))
+	if(args.mode=="client"):
+		messcolor.printc('blue', "SETTING: SRT to client/caller mode")
+		srt_entrypoint.write(bytes("/home/srt/srt-live-transmit -r:2000 -s:2000 -v udp://0.0.0.0:4443/?mode=client srt://" + args.target + ":" + args.port,'UTF-8'))
+	if(args.mode=="server"):
+		messcolor.printc('blue', "SETTING: SRT to server/listener mode")
+		srt_entrypoint.write(bytes("/home/srt/srt-live-transmit -r:2000 -s:2000 -v udp://0.0.0.0:4443 srt://0.0.0.0:" + args.port + "/?mode=server",'UTF-8'))
+	srt_entrypoint.close()
+	os.chmod(srtConnectPath+'/hostfiles/srt-entrypoint.sh', stat.S_IXOTH | stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
+	messcolor.printc('blue', "SUCCESS: SRT Entrypoint file created (hostfiles/srt-entrypoint.sh)")
+	print('\n')
+
+
+
+if __name__ == "__main__":
+	import argparse
+	parser = argparse.ArgumentParser()
+	parser.add_argument('--direction', '-d', help="Direction of stream (tx/rx)")
+	parser.add_argument('--target', '-t', help="IP address of SRT target")
+	parser.add_argument('--kill', '-k', help="set to \'1\' to kill srt")
+	args = parser.parse_args()
+	profile = args.profile
+
+	if args.kill == '1':
+		kill()
+
+	if args.profile is None:
+		messcolor.printc('red','ERROR: Encoder requires a definition')
+		messcolor.printc('yellow','Select a definition from the profiles folder and define with \'--profile\'')
+		quit()
+
+	if args.channel == None:
+		channel="1"
+		messcolor.printc('yellow','Channel not defined by user')
+		messcolor.printc('green','Sourcing multicast channel: ' + channel)
+	else:
+		channel=args.channel
+		messcolor.printc('green','Sourcing multicast channel: ' + channel)

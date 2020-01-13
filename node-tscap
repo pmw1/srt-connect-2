@@ -1,0 +1,97 @@
+#!/usr/bin/python3
+
+#### Imports
+import sys
+import random
+import os
+import time
+import subprocess
+#### Import Custom Modules
+import messcolor
+
+user=os.getlogin()
+path=('/home/'+user+'/apps/srt-connect-2')
+
+
+
+
+
+def buildTSCapEntrypoint():
+	from subprocess import call
+	import stat
+	#os.remove('/hostfiles/entrypoint-multicat.sh')
+	entrypoint_file = open(path+"/hostfiles/entrypoint-tscap.sh", "w+")
+	entrypoint_file.write("#!/bin/bash\n")
+	entrypoint_file.write('multicat -u @234.252.0.'+channel+':8787 ' + "/captures/" + filename + '\n')
+	entrypoint_file.close()
+	os.chmod(path+'/hostfiles/entrypoint-tscap.sh', stat.S_IXOTH | stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
+
+
+def initiateTScap():
+	import subprocess
+	import stat
+	docker = open(path+"/hostfiles/start-tscap.sh", "w+")
+	docker.write("#!/bin/bash\n")
+
+	docker.write("docker rm -f " + args.name + "\n"             )
+	
+	docker.write("docker run ")
+	docker.write("-v "+path+"/hostfiles/:/hostfiles ")
+	docker.write("-v "+path+"/captures/:/captures ")
+	docker.write("--name=\""+args.name+"\" ")
+	docker.write("--network=\"split\" ")
+	docker.write("--ip=\"10.0.10.4\" ")
+	docker.write("--entrypoint=\"/bin/bash\" ")
+	docker.write("--privileged -i -t -d ")
+	docker.write("pmw1/multicat\n")
+	docker.write("echo && echo")
+	docker.close()
+	os.chmod(path+'/hostfiles/start-tscap.sh', stat.S_IXOTH | stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
+	proc = subprocess.Popen(path+'/hostfiles/start-tscap.sh', shell=True)
+	time.sleep(.5)
+	proc1 = subprocess.Popen('docker exec -d -t '+args.name+' /hostfiles/entrypoint-tscap.sh', shell=True)
+
+
+if __name__ == "__main__":
+	import argparse
+	parser = argparse.ArgumentParser()
+	parser.add_argument('--channel', '-c', help="Multicast \'channel\' to listen too.  e.g. @234.252.0.*:8787")
+	parser.add_argument('--name', '-n', help="Unique name for the container")
+	parser.add_argument('--file', '-f', help="file name override")
+	parser.add_argument('--kill', '-k', help="set to \'1\' to kill node-direct")
+	args = parser.parse_args()
+
+	if args.kill == '1':
+		if args.name == None:
+			messcolor.printc('red','Must define name of Docker container to kill with --name')
+			quit()
+		else:
+			messcolor.printc('inversered','Terminating TSCap...')
+			proc = subprocess.Popen('docker rm -f '+ args.name, shell=True)
+			quit()
+
+	if args.channel == None:
+		channel="1"
+		messcolor.printc('yellow','Channel not defined by user')
+		messcolor.printc('green','Sourcing multicast channel: ' + channel)
+	else:
+		channel=args.channel
+		messcolor.printc('green','Sourcing multicast channel: ' + channel)
+
+	if args.file == None:
+		filename = str(time.time()) + ".ts"
+	else:
+		filename=str(args.file)+".ts"
+
+	if args.name == None:
+		messcolor.printc('red','Container name must be defined ')
+		quit()
+	else:
+		name=args.name
+
+
+
+
+#messcolor.printc('green','Node Direct RTP: to) Home')
+buildTSCapEntrypoint()
+initiateTScap()

@@ -1,0 +1,100 @@
+#!/usr/bin/python3
+
+#### Imports
+import sys
+import random
+import os
+import time
+import subprocess
+#### Import Custom Modules
+import messcolor
+
+user=os.getlogin()
+path=('/home/'+user+'/apps/srt-connect-2')
+
+
+
+
+
+def buildMulticatEntrypoint():
+	from subprocess import call
+	import stat
+	#os.remove('/hostfiles/entrypoint-multicat.sh')
+	entrypoint_file = open(path+"/hostfiles/entrypoint-multicat.sh", "w+")
+	entrypoint_file.write("#!/bin/bash\n")
+	entrypoint_file.write('multicat -p 68 -u @234.252.0.'+channel+':8787 '+args.target+':'+args.port+'\n')
+	entrypoint_file.close()
+	os.chmod(path+'/hostfiles/entrypoint-multicat.sh', stat.S_IXOTH | stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
+
+
+def initiateMulticat():
+	import subprocess
+	import stat
+	docker = open(path+"/hostfiles/start-multicat.sh", "w+")
+	docker.write("#!/bin/bash\n")
+	docker.write("docker rm -f multicat\n")
+	docker.write("docker run ")
+	docker.write("-v "+path+"/hostfiles/:/hostfiles ")
+	docker.write("--name=\"multicat\" ")
+	docker.write("--network=\"split\" ")
+	docker.write("--ip=\"10.0.10.3\" ")
+	docker.write("--entrypoint=\"/bin/bash\" ")
+	docker.write("--privileged -i -t -d ")
+	docker.write("pmw1/multicat\n")
+	docker.write("echo && echo")
+	docker.close()
+	os.chmod(path+'/hostfiles/start-multicat.sh', stat.S_IXOTH | stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
+	proc = subprocess.Popen(path+'/hostfiles/start-multicat.sh', shell=True)
+	time.sleep(.5)
+	proc1 = subprocess.Popen('docker exec -d -t multicat /hostfiles/entrypoint-multicat.sh', shell=True)
+
+
+
+
+
+
+
+
+if __name__ == "__main__":
+	import argparse
+	parser = argparse.ArgumentParser()
+	parser.add_argument('--channel', '-c', help="Multicast \'channel\' to listen too.  e.g. @234.252.0.*:8787")
+	parser.add_argument('--target', '-t', help="target ip")
+	parser.add_argument('--port', '-p', help="target port")
+	parser.add_argument('--kill', '-k', help="set to \'1\' to kill node-direct")
+	args = parser.parse_args()
+
+	if args.kill == '1':
+		messcolor.printc('inversered','Terminating Multicat...')
+		proc = subprocess.Popen('docker rm -f multicat', shell=True)
+		quit()
+
+
+	if args.target == None:
+		messcolor.printc('red','Target IP must be specified')
+		quit()
+
+	if args.port == None:
+		messcolor.printc('red','Target PORT must be specified')
+		quit()
+
+	if args.channel == None:
+		channel="1"
+		messcolor.printc('yellow','Channel not defined by user')
+		messcolor.printc('green','Sourcing multicast channel: ' + channel)
+	else:
+		channel=args.channel
+		messcolor.printc('green','Sourcing multicast channel: ' + channel)
+
+
+
+
+
+
+
+
+
+
+#messcolor.printc('green','Node Direct RTP: to) Home')
+buildMulticatEntrypoint()
+initiateMulticat()

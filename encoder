@@ -6,6 +6,7 @@ import random
 import os
 import time
 import subprocess
+
 #### Import Custom Modules
 import messcolor
 
@@ -13,14 +14,10 @@ user=os.getlogin()
 path=('/home/'+user+'/apps/srt-connect-2')
 
 
-
-
 def kill():
 	killobe=os.system('docker rm -f obe-rt')
 	messcolor.printc('inversered', 'OBE (encoder) Killed.')
 	quit()
-
-
 
 def createEntryPoint():
 	messcolor.printc('inverseblue', '-------------- BUILDING TX ENVIRONMENT --------------')
@@ -28,7 +25,11 @@ def createEntryPoint():
 	######### Begin building entrypoint
 	
 	#### Parse data from selected config file 
-	profile_filepath=(path + '/profiles/' + args.profile)
+	profile_filepath=(path + '/profiles/' + profile)
+	print('looking for profile: {}'.format(profile))
+	print('searching for profile: {}'.format(profile))
+
+
 	from configparser import ConfigParser
 	parser = ConfigParser()
 	parser.read(profile_filepath)
@@ -65,37 +66,37 @@ def createEntryPoint():
 	setting['ts-muxrate']=(settings.get('ts-muxrate'))
 	setting['outputmode']=(settings.get('outputmode'))
 	setting['numoutputs']=(settings.get('numoutputs'))
-	messcolor.labelc('greenyellow','PROFILE NAME',setting['name'])
-	messcolor.labelc('greenyellow','DESCRIPTION',setting['description'])
-	messcolor.labelc('greenyellow','VID INPUT',setting['vidconnection'])
-	messcolor.labelc('greenyellow','SYSTEM TYPE',setting['systype'])
-	messcolor.labelc('greenyellow','VID FORMAT',setting['vvideoformat'])
-	messcolor.labelc('greenyellow','VID PID',setting['vpid'])
-	messcolor.labelc('greenyellow','VID MAX BIT',setting['vvbv-maxrate'])
-	messcolor.labelc('greenyellow','VID BITRATE',setting['vbitrate'])
-	messcolor.labelc('greenyellow','VID KEYINT',setting['vkeyint'])
-	messcolor.labelc('greenyellow','VID B-FRAMES',setting['vbframes'])
-	messcolor.labelc('greenyellow','VID THREADS',setting['vthreads'])
-	messcolor.labelc('greenyellow','VID FORMAT',setting['vformat'])
-	messcolor.labelc('greenyellow','VID PROFILE',setting['vprofile'])
-	messcolor.labelc('greenyellow','VID LEVEL',setting['vlevel'])
-	messcolor.labelc('greenyellow','VID ASPECT',setting['vaspect-ratio'])
-	messcolor.labelc('greenyellow','VID INTRA',setting['vintra-refresh'])
-	messcolor.labelc('greenyellow','AUD PID',setting['apid'])
-	messcolor.labelc('greenyellow','AUD BITRATE',setting['abitrate'])
-	messcolor.labelc('greenyellow','AUD FORMAT',setting['aformat'])
-	messcolor.labelc('greenyellow','AAC PROFILE',setting['aaac-profile'])
-	messcolor.labelc('greenyellow','AAC ENCAP',setting['aaac-encap'])
-	messcolor.labelc('greenyellow','PMT PID',setting['pmt-pid'])
-	messcolor.labelc('greenyellow','PGM NUM',setting['program-num'])
-	messcolor.labelc('greenyellow','PCR PID',setting['pcr-pid'])
-	messcolor.labelc('greenyellow','TS TYPE',setting['ts-type'])
-	messcolor.labelc('greenyellow','CONSTANT BR',setting['cbr'])
-	messcolor.labelc('greenyellow','LOOKAHEAD',setting['lookahead'])
-	messcolor.labelc('greenyellow','TS ID',setting['ts-id'])
-	messcolor.labelc('greenyellow','TS MUXRATE',setting['ts-muxrate'])
-	messcolor.labelc('greenyellow','OUTPUT MODE',setting['outputmode'])
-	messcolor.labelc('greenyellow','NUM OUTPUTS',setting['numoutputs'])
+	# messcolor.labelc('greenyellow','PROFILE NAME',setting['name'])
+	# messcolor.labelc('greenyellow','DESCRIPTION',setting['description'])
+	# messcolor.labelc('greenyellow','VID INPUT',setting['vidconnection'])
+	# messcolor.labelc('greenyellow','SYSTEM TYPE',setting['systype'])
+	# messcolor.labelc('greenyellow','VID FORMAT',setting['vvideoformat'])
+	# messcolor.labelc('greenyellow','VID PID',setting['vpid'])
+	# messcolor.labelc('greenyellow','VID MAX BIT',setting['vvbv-maxrate'])
+	# messcolor.labelc('greenyellow','VID BITRATE',setting['vbitrate'])
+	# messcolor.labelc('greenyellow','VID KEYINT',setting['vkeyint'])
+	# messcolor.labelc('greenyellow','VID B-FRAMES',setting['vbframes'])
+	# messcolor.labelc('greenyellow','VID THREADS',setting['vthreads'])
+	# messcolor.labelc('greenyellow','VID FORMAT',setting['vformat'])
+	# messcolor.labelc('greenyellow','VID PROFILE',setting['vprofile'])
+	# messcolor.labelc('greenyellow','VID LEVEL',setting['vlevel'])
+	# messcolor.labelc('greenyellow','VID ASPECT',setting['vaspect-ratio'])
+	# messcolor.labelc('greenyellow','VID INTRA',setting['vintra-refresh'])
+	# messcolor.labelc('greenyellow','AUD PID',setting['apid'])
+	# messcolor.labelc('greenyellow','AUD BITRATE',setting['abitrate'])
+	# messcolor.labelc('greenyellow','AUD FORMAT',setting['aformat'])
+	# messcolor.labelc('greenyellow','AAC PROFILE',setting['aaac-profile'])
+	# messcolor.labelc('greenyellow','AAC ENCAP',setting['aaac-encap'])
+	# messcolor.labelc('greenyellow','PMT PID',setting['pmt-pid'])
+	# messcolor.labelc('greenyellow','PGM NUM',setting['program-num'])
+	# messcolor.labelc('greenyellow','PCR PID',setting['pcr-pid'])
+	# messcolor.labelc('greenyellow','TS TYPE',setting['ts-type'])
+	# messcolor.labelc('greenyellow','CONSTANT BR',setting['cbr'])
+	# messcolor.labelc('greenyellow','LOOKAHEAD',setting['lookahead'])
+	# messcolor.labelc('greenyellow','TS ID',setting['ts-id'])
+	# messcolor.labelc('greenyellow','TS MUXRATE',setting['ts-muxrate'])
+	# messcolor.labelc('greenyellow','OUTPUT MODE',setting['outputmode'])
+	# messcolor.labelc('greenyellow','NUM OUTPUTS',setting['numoutputs'])
 	print('\n')
 
 
@@ -215,9 +216,6 @@ def createEntryPoint():
 	messcolor.printc('blue', "SUCCESS: Docker Entrypoint file created (hostfiles/obe-entrypoint.sh)")
 	print('\n')
 
-
-
-
 def buildDockerLauncher():
 	messcolor.printc('blue', 'Contructing OBE Docker Launcher')
 	from subprocess import call
@@ -239,12 +237,14 @@ def buildDockerLauncher():
 	messcolor.printc('blue', "SUCCESS: Docker launcher file created (hostfiles/start-obe-docker.sh)")
 	print('\n')
 
-
-
 def launchDocker():
 	messcolor.printc('inverseblue', '---------------- ENCODING STARTED ------------------')
 	obe=subprocess.Popen(path + '/hostfiles/start-obe-docker.sh', shell=True)
 	obe=subprocess.Popen('echo && echo && echo && echo && echo ', shell=True)
+	
+	statusfile=open('{}/lastused'.format(path),'w+')
+	statusfile.write('profile,{}\n'.format(profile))
+	statusfile.close()
 
 
 
@@ -266,6 +266,18 @@ if __name__ == "__main__":
 		messcolor.printc('red','ERROR: Encoder requires a definition')
 		messcolor.printc('yellow','Select a definition from the profiles folder and define with \'--profile\'')
 		quit()
+
+	if args.profile == 'lastused':
+		with open('{}/lastused'.format(path),'r') as lastusedfile:
+			for line in lastusedfile:
+				element=line.split(',')
+				if element[0]=='profile':
+					profile=element[1].rstrip()
+				else:
+					pass
+		lastusedfile.close()
+
+		messcolor.printc('yellow','defaulting to last used {} profile...'.format(profile))
 
 	if args.channel == None:
 		channel="1"

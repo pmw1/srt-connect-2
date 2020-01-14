@@ -9,26 +9,57 @@ import subprocess
 #### Import Custom Modules
 import messcolor
 
+
 user=os.getlogin()
 path=('/home/'+user+'/apps/srt-connect-2')
 
 
 
+def buildSrtEntrypoint(direction,target,port,channel):
+	import stat
+	if direction == 'tx':
+		srt_entrypoint = open(path+"/hostfiles/srt-entrypoint.sh", "wb")
+		srt_entrypoint.write(bytes("#!/bin/bash\n", 'UTF-8'))
+		if(args.mode=="client"):
+			messcolor.printc('blue', "SETTING: SRT to client/caller mode")
+			srt_entrypoint.write(bytes("/home/srt/srt-live-transmit -r:2000 -s:2000 -v udp://234.252.0.1:8787/?mode=client srt://" + args.target + ":" + args.port,'UTF-8'))
+		if(args.mode=="server"):
+			messcolor.printc('blue', "SETTING: SRT to server/listener mode")
+			srt_entrypoint.write(bytes("/home/srt/srt-live-transmit -r:2000 -s:2000 -v udp://234.252.0.1:8787 srt://0.0.0.0:" + args.port + "/?mode=server",'UTF-8'))
+		srt_entrypoint.close()
+		os.chmod(path+'/hostfiles/srt-entrypoint.sh', stat.S_IXOTH | stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
+		messcolor.printc('blue', "SUCCESS: SRT Entrypoint file created (hostfiles/srt-entrypoint.sh)")
+		print('\n')
+	elif direction == 'rx':
+		pass
 
-def buildSrtEntrypoint():
-	srt_entrypoint = open(path+"/hostfiles/srt-entrypoint.sh", "wb")
-	srt_entrypoint.write(bytes("#!/bin/bash\n", 'UTF-8'))
-	if(args.mode=="client"):
-		messcolor.printc('blue', "SETTING: SRT to client/caller mode")
-		srt_entrypoint.write(bytes("/home/srt/srt-live-transmit -r:2000 -s:2000 -v udp://0.0.0.0:4443/?mode=client srt://" + args.target + ":" + args.port,'UTF-8'))
-	if(args.mode=="server"):
-		messcolor.printc('blue', "SETTING: SRT to server/listener mode")
-		srt_entrypoint.write(bytes("/home/srt/srt-live-transmit -r:2000 -s:2000 -v udp://0.0.0.0:4443 srt://0.0.0.0:" + args.port + "/?mode=server",'UTF-8'))
-	srt_entrypoint.close()
-	os.chmod(srtConnectPath+'/hostfiles/srt-entrypoint.sh', stat.S_IXOTH | stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
-	messcolor.printc('blue', "SUCCESS: SRT Entrypoint file created (hostfiles/srt-entrypoint.sh)")
-	print('\n')
+def launchSrtDocker():
+	import stat
+	srt_start_docker = open(path+"/hostfiles/start-srt-docker.sh", "wb")
+	srt_start_docker.write(bytes("#!/bin/bash\n", 'UTF-8'))
+	srt_start_docker.write(bytes("echo\n", 'UTF-8'))
+	srt_start_docker.write(bytes("docker rm -f srt-tx\n", 'UTF-8'))
+	srt_start_docker.write(bytes("docker run ", 'UTF-8'))
+	srt_start_docker.write(bytes("--name=\"srt-tx\" ", 'UTF-8'))
+	srt_start_docker.write(bytes("--network=\"split\" ", 'UTF-8'))
+	srt_start_docker.write(bytes("--ip=\"10.0.10.3\" ", 'UTF-8'))
+	srt_start_docker.write(bytes("-p 8787:8787/udp ", 'UTF-8'))
+	srt_start_docker.write(bytes("-p " + args.port + ":" + args.port + "/udp ", 'UTF-8'))
+	srt_start_docker.write(bytes("-v "+path+"/hostfiles:/home/hostfiles ", 'UTF-8'))
+	srt_start_docker.write(bytes("--privileged -i -t -d ", 'UTF-8'))
+	##srt_start_docker.write(bytes("--entrypoint=\"/bin/bash\" ", 'UTF-8'))
+	srt_start_docker.write(bytes("pmw1/srt \n", 'UTF-8'))
+	srt_start_docker.close()
+	os.chmod(path+'/hostfiles/start-srt-docker.sh', stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
+	srt=subprocess.run(path+'/hostfiles/start-srt-docker.sh', shell=True)
+	print('SRT Docker Running...\n')
 
+def kill(direction):
+	if direction=='tx':
+		cmd='docker rm -f srt-tx'
+	elif direction=='rx':
+		cmd='docker rm -f srt-rx'
+	launchKill=subprocess.Popen(cmd, shell=True)
 
 
 if __name__ == "__main__":
@@ -36,17 +67,18 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--direction', '-d', help="Direction of stream (tx/rx)")
 	parser.add_argument('--target', '-t', help="IP address of SRT target")
+	parser.add_argument('--channel', '-c', help="Specify local multicast channel for tx/rx")
+	parser.add_argument('--port', '-p', help="Specify SRT connection port")
+	parser.add_argument('--mode', '-m', help="Specify SRT connection mode (server,caller,rendevous)")
 	parser.add_argument('--kill', '-k', help="set to \'1\' to kill srt")
 	args = parser.parse_args()
-	profile = args.profile
 
 	if args.kill == '1':
-		kill()
-
-	if args.profile is None:
-		messcolor.printc('red','ERROR: Encoder requires a definition')
-		messcolor.printc('yellow','Select a definition from the profiles folder and define with \'--profile\'')
-		quit()
+		if (args.direction):
+			kill(args.direction)
+			quit()
+		else:
+			print('SRT Direction to kill must be specified.  (-dtx or -drx')
 
 	if args.channel == None:
 		channel="1"
@@ -55,3 +87,10 @@ if __name__ == "__main__":
 	else:
 		channel=args.channel
 		messcolor.printc('green','Sourcing multicast channel: ' + channel)
+
+	if args.mode != 'client':
+		print('node-srt can currently only run in client mode')
+		quit()
+
+buildSrtEntrypoint(args.direction, args.target, args.port, channel)
+launchSrtDocker()

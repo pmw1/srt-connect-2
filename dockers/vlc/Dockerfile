@@ -27,14 +27,14 @@ RUN git clone http://git.videolan.org/git/x264.git && cd x264 && \
 
 
 ## INSTALL LIBx265
-WORKDIR /data
-RUN hg clone https://bitbucket.org/multicoreware/x265 && \
-cd /data/x265/build/linux && \
-PATH="$HOME/bin:$PATH" cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="/data/lib" -DENABLE_SHARED:bool=on ../../source && \
-make && \
-make install && \
-make clean
-WORKDIR /data
+##WORKDIR /data
+##RUN hg clone https://bitbucket.org/multicoreware/x265 && \
+##cd /data/x265/build/linux && \
+##PATH="$HOME/bin:$PATH" cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="/data/lib" -DENABLE_SHARED:bool=on ../../source && \
+##make && \
+##make install && \
+##make clean
+##WORKDIR /data
 
 
 

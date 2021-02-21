@@ -30,85 +30,104 @@ echo "" && echo "" && echo "" && echo "" && echo ""
 sudo apt-get install -y iftop nload 
 
 
-#Install Blackmagic Drivers on Host System
-sleep 1
-clear
-echo "Installing Prerequisit Packages ....."
-echo "" && echo "" && echo "" && echo "" && echo "" 
-echo "Installing LINUX HEADERS ....."
-sudo apt-get install -y linux-headers-$(uname -r)
-echo "" && echo "" && echo ""
-sleep 5
-
-echo "Installing DKMS ....."
-sudo apt-get install -y dkms
-echo "" && echo "" && echo ""
-sleep 5
-
-
-echo "Downloading software from AWS....."
-
-cd /home/$user/apps/srt-connect-2/dockers/decklink-10.11.1
-if [ -f "/home/$user/apps/srt-connect-2/dockers/decklink-10.11.1/Blackmagic_Desktop_Video_Linux_10.11.1.tar" ]; then
-	rm -f /home/$user/apps/srt-connect-2/dockers/decklink-10.11.1/Blackmagic_Desktop_Video_Linux_10.11.1.tar
-fi
-wget https://s3.amazonaws.com/files.polarismediaworks.com/Blackmagic_Desktop_Video_Linux_10.11.1.tar
-tar xvf Blackmagic_Desktop_Video_Linux_10.11.1.tar
 
 
 
 
-echo "Installing Blackmagic Drivers on Host System ....."
-cd /home/$user/apps/srt-connect-2/dockers/decklink-10.11.1/Blackmagic_Desktop_Video_Linux_10.11.1/deb/x86_64
-sudo dpkg -i desktopvideo_10.11.1a4_amd64.deb
-sudo apt-get install -y -f
-echo "" && echo "" && echo ""
-sleep 5
 
 
-echo "Update Blackmagic Firmware ....."
-read -r -p  "Do you wish to update firmware now? (y/N): " update
-case "$update" in
+
+echo;echo;echo
+read -r -p  "Install Linux Headers?  (y/N): " continue
+case "$continue" in
 	[yY])
-	BlackmagicFirmwareUpdater update 0
-	sleep 1
-	BlackmagicFirmwareUpdater status
+		#Install Blackmagic Drivers on Host System
+		sleep 1
+		clear
+		echo "Installing Prerequisit Packages ....."
+		echo "" && echo "" && echo "" && echo "" && echo "" 
+		echo "Installing LINUX HEADERS ....."
+		sudo apt-get install -y linux-headers-$(uname -r)
+		echo "" && echo "" && echo ""
+	;;
+	[nN])
+		echo "Skipping Linux Headers Installation..."
 	;;
 esac
-echo "" && echo "" && echo ""
-sleep 5
 
-echo "Copying libDeckLinkAPI.so and libDeckLinkPreviewAPI.so to Decklink Docker build....."
-sudo cp /usr/lib/libDeckLinkAPI.so /home/$user/apps/srt-connect-2/dockers/decklink-10.11.1
-sudo cp /usr/lib/libDeckLinkPreviewAPI.so /home/$user/apps/srt-connect-2/dockers/decklink-10.11.1
-sudo cp /usr/lib/libDeckLinkAPI.so /home/$user/apps/srt-connect-2/dockers/vlc
-echo "Finished Blackmagic Setup....."
-echo "" && echo "" && echo ""
-sleep 1
+
+
+echo;echo;echo
+read -r -p  "Install BMD Drivers?  (y/N): " continue
+case "$continue" in
+	[yY])
+		#Install Blackmagic Drivers on Host System
+		echo "Installing DKMS ....."
+		sudo apt-get install -y dkms
+		echo "" && echo "" && echo ""
+
+		echo "Downloading software from AWS....."
+
+		cd /home/$user/apps/srt-connect-2/dockers/decklink-10.11.1
+		if [ -f "/home/$user/apps/srt-connect-2/dockers/decklink-10.11.1/Blackmagic_Desktop_Video_Linux_10.11.1.tar" ]; then
+			rm -f /home/$user/apps/srt-connect-2/dockers/decklink-10.11.1/Blackmagic_Desktop_Video_Linux_10.11.1.tar
+		fi
+		wget https://s3.amazonaws.com/files.polarismediaworks.com/Blackmagic_Desktop_Video_Linux_10.11.1.tar
+		tar xvf Blackmagic_Desktop_Video_Linux_10.11.1.tar
+
+		echo "Installing Blackmagic Drivers on Host System ....."
+		cd /home/$user/apps/srt-connect-2/dockers/decklink-10.11.1/Blackmagic_Desktop_Video_Linux_10.11.1/deb/x86_64
+		sudo dpkg -i desktopvideo_10.11.1a4_amd64.deb
+		sudo apt-get install -y -f
+		echo "" && echo "" && echo ""
+
+		echo "Update Blackmagic Firmware ....."
+
+		BlackmagicFirmwareUpdater update 0
+		sleep 1
+		BlackmagicFirmwareUpdater status
+
+		echo "" && echo "" && echo ""
+		echo "Copying libDeckLinkAPI.so and libDeckLinkPreviewAPI.so to Decklink Docker build....."
+		sudo cp /usr/lib/libDeckLinkAPI.so /home/$user/apps/srt-connect-2/dockers/decklink-10.11.1
+		sudo cp /usr/lib/libDeckLinkPreviewAPI.so /home/$user/apps/srt-connect-2/dockers/decklink-10.11.1
+		sudo cp /usr/lib/libDeckLinkAPI.so /home/$user/apps/srt-connect-2/dockers/vlc
+		echo "Finished Blackmagic Setup....."
+		echo "" && echo "" && echo ""
+	;;
+	[nN])
+		echo "Skipping BMD driver installation..."
+	;;
+esac
+
+
+
+
+
 
 
 # Install Docker and Docker Network
-clear
-echo "Installing Docker....."
 read -r -p  "Do you wish to install Docker now? (y/N): " installDocker
 case "$installDocker" in
 	[yY])
-	sudo apt-get remove docker docker-engine docker.io
-	sudo apt-get update
-	sudo apt-get install -y yapt-transport-https ca-certificates curl software-properties-common
-	$ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-	sudo apt-key fingerprint 0EBFCD88
-	sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-	sudo apt-get update
-	sudo apt-get install -y --allow-unauthenticated docker-ce
-	## network 
-	sudo docker network create --gateway=10.0.10.1 --subnet=10.0.10.0/24 -d bridge split
+	echo "Installing Docker....."
+	sudo apt-get install -y docker.io
+	# sudo apt-get remove docker docker-engine docker.io
+	# sudo apt-get update
+	# sudo apt-get install -y yapt-transport-https ca-certificates curl software-properties-common
+	# $ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+	# sudo apt-key fingerprint 0EBFCD88
+	# sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+	##sudo apt-get update
+	##sudo apt-get install -y --allow-unauthenticated docker-ce
+	#### network 
+	##sudo docker network create --gateway=10.0.10.1 --subnet=10.0.10.0/24 -d bridge split
 	;;
 	[nN])
 	echo "skipping Docker install..."
 esac
 echo "" && echo "" && echo ""
-sleep 1
+
 
 
 read -r -p  "Do you wish to build Decklink Docker? (y/N): " buildDecklinkDocker

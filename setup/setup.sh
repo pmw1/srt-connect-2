@@ -121,7 +121,7 @@ case "$installDocker" in
 	##sudo apt-get update
 	##sudo apt-get install -y --allow-unauthenticated docker-ce
 	#### network 
-	##sudo docker network create --gateway=10.0.10.1 --subnet=10.0.10.0/24 -d bridge split
+	sudo docker network create --gateway=10.0.10.1 --subnet=10.0.10.0/24 -d bridge split
 	;;
 	[nN])
 	echo "skipping Docker install..."
